@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Getting Started · SNA.jl</title><meta name="title" content="Getting Started · SNA.jl"/><meta property="og:title" content="Getting Started · SNA.jl"/><meta property="twitter:title" content="Getting Started · SNA.jl"/><meta name="description" content="Documentation for SNA.jl."/><meta property="og:description" content="Documentation for SNA.jl."/><meta property="twitter:description" content="Documentation for SNA.jl."/><meta property="og:url" content="https://Statistical-network-analysis-with-Julia.github.io/SNA.jl/getting_started.html"/><meta property="twitter:url" content="https://Statistical-network-analysis-with-Julia.github.io/SNA.jl/getting_started.html"/><link rel="canonical" href="https://Statistical-network-analysis-with-Julia.github.io/SNA.jl/getting_started.html"/><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="search_index.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="index.html"><img src="assets/logo.svg" alt="SNA.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="index.html">SNA.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="index.html">Home</a></li><li class="is-active"><a class="tocitem" href="getting_started.html">Getting Started</a><ul class="internal"><li><a class="tocitem" href="#Installation"><span>Installation</span></a></li><li><a class="tocitem" href="#Basic-Workflow"><span>Basic Workflow</span></a></li><li><a class="tocitem" href="#Step-1:-Create-a-Network"><span>Step 1: Create a Network</span></a></li><li><a class="tocitem" href="#Step-2:-Compute-Centrality-Measures"><span>Step 2: Compute Centrality Measures</span></a></li><li><a class="tocitem" href="#Step-3:-Analyze-Network-Structure"><span>Step 3: Analyze Network Structure</span></a></li><li><a class="tocitem" href="#Step-4:-Structural-Equivalence-and-Blockmodels"><span>Step 4: Structural Equivalence and Blockmodels</span></a></li><li><a class="tocitem" href="#Complete-Example"><span>Complete Example</span></a></li><li><a class="tocitem" href="#Best-Practices"><span>Best Practices</span></a></li><li><a class="tocitem" href="#Next-Steps"><span>Next Steps</span></a></li></ul></li><li><span class="tocitem">User Guide</span><ul><li><a class="tocitem" href="guide/centrality.html">Centrality</a></li><li><a class="tocitem" href="guide/measures.html">Network Measures</a></li><li><a class="tocitem" href="guide/cohesion.html">Cohesion</a></li><li><a class="tocitem" href="guide/equivalence.html">Structural Equivalence</a></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="api/centrality.html">Centrality</a></li><li><a class="tocitem" href="api/measures.html">Measures</a></li><li><a class="tocitem" href="api/cohesion.html">Cohesion</a></li><li><a class="tocitem" href="api/equivalence.html">Equivalence</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href="getting_started.html">Getting Started</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="getting_started.html">Getting Started</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/Statistical-network-analysis-with-Julia/SNA.jl/blob/main/docs/src/getting_started.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Getting-Started"><a class="docs-heading-anchor" href="#Getting-Started">Getting Started</a><a id="Getting-Started-1"></a><a class="docs-heading-anchor-permalink" href="#Getting-Started" title="Permalink"></a></h1><p>This tutorial walks through common use cases for SNA.jl, from basic centrality computation to advanced structural equivalence analysis.</p><h2 id="Installation"><a class="docs-heading-anchor" href="#Installation">Installation</a><a id="Installation-1"></a><a class="docs-heading-anchor-permalink" href="#Installation" title="Permalink"></a></h2><p>Install SNA.jl from GitHub:</p><pre><code class="language-julia hljs">using Pkg
+Pkg.add(url=&quot;https://github.com/Statistical-network-analysis-with-Julia/SNA.jl&quot;)</code></pre><p>SNA.jl depends on <a href="https://github.com/Statistical-network-analysis-with-Julia/Network.jl">Network.jl</a>, which provides the core network data structure. It will be installed automatically as a dependency.</p><h2 id="Basic-Workflow"><a class="docs-heading-anchor" href="#Basic-Workflow">Basic Workflow</a><a id="Basic-Workflow-1"></a><a class="docs-heading-anchor-permalink" href="#Basic-Workflow" title="Permalink"></a></h2><p>The typical SNA.jl workflow consists of four steps:</p><ol><li><strong>Create or load a network</strong> - Build the network from data</li><li><strong>Compute centrality measures</strong> - Identify important actors</li><li><strong>Analyze network structure</strong> - Assess density, reciprocity, cohesion</li><li><strong>Positional analysis</strong> - Find structurally equivalent actors and build blockmodels</li></ol><h2 id="Step-1:-Create-a-Network"><a class="docs-heading-anchor" href="#Step-1:-Create-a-Network">Step 1: Create a Network</a><a id="Step-1:-Create-a-Network-1"></a><a class="docs-heading-anchor-permalink" href="#Step-1:-Create-a-Network" title="Permalink"></a></h2><p>Networks are created using the <code>Network.jl</code> package:</p><pre><code class="language-julia hljs">using Network, SNA
+
+# Create a directed network with 6 vertices
+net = Network(6; directed=true)
+
+# Add edges representing a communication network
+add_edge!(net, 1, 2)  # Alice → Bob
+add_edge!(net, 1, 3)  # Alice → Carol
+add_edge!(net, 2, 1)  # Bob → Alice (reciprocal)
+add_edge!(net, 2, 4)  # Bob → David
+add_edge!(net, 3, 4)  # Carol → David
+add_edge!(net, 3, 5)  # Carol → Eve
+add_edge!(net, 4, 5)  # David → Eve
+add_edge!(net, 4, 6)  # David → Frank
+add_edge!(net, 5, 6)  # Eve → Frank
+add_edge!(net, 6, 4)  # Frank → David (reciprocal)
+
+println(&quot;Vertices: &quot;, nv(net))   # 6
+println(&quot;Edges: &quot;, ne(net))      # 10
+println(&quot;Directed: &quot;, is_directed(net))  # true</code></pre><h3 id="Creating-Undirected-Networks"><a class="docs-heading-anchor" href="#Creating-Undirected-Networks">Creating Undirected Networks</a><a id="Creating-Undirected-Networks-1"></a><a class="docs-heading-anchor-permalink" href="#Creating-Undirected-Networks" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Undirected friendship network
+net_undir = Network(5; directed=false)
+add_edge!(net_undir, 1, 2)
+add_edge!(net_undir, 1, 3)
+add_edge!(net_undir, 2, 3)
+add_edge!(net_undir, 3, 4)
+add_edge!(net_undir, 4, 5)</code></pre><h3 id="Random-Networks"><a class="docs-heading-anchor" href="#Random-Networks">Random Networks</a><a id="Random-Networks-1"></a><a class="docs-heading-anchor-permalink" href="#Random-Networks" title="Permalink"></a></h3><p>SNA.jl includes random graph generators:</p><pre><code class="language-julia hljs"># Bernoulli random graph (each edge exists with probability p)
+net_random = rgnp(20, 0.15)
+
+# Random graph with fixed edge count
+net_fixed = rgnm(20, 40)
+
+# Directed random graph with specified density
+net_dense = rgraph(10; density=0.3)</code></pre><h2 id="Step-2:-Compute-Centrality-Measures"><a class="docs-heading-anchor" href="#Step-2:-Compute-Centrality-Measures">Step 2: Compute Centrality Measures</a><a id="Step-2:-Compute-Centrality-Measures-1"></a><a class="docs-heading-anchor-permalink" href="#Step-2:-Compute-Centrality-Measures" title="Permalink"></a></h2><p>Centrality measures identify the most important actors in the network:</p><pre><code class="language-julia hljs">using Network, SNA
+
+net = Network(6; directed=true)
+add_edge!(net, 1, 2); add_edge!(net, 1, 3)
+add_edge!(net, 2, 1); add_edge!(net, 2, 4)
+add_edge!(net, 3, 4); add_edge!(net, 3, 5)
+add_edge!(net, 4, 5); add_edge!(net, 4, 6)
+add_edge!(net, 5, 6); add_edge!(net, 6, 4)
+
+# Degree centrality (number of connections)
+dc = degree_centrality(net; mode=:total)
+println(&quot;Degree centrality: &quot;, round.(dc, digits=2))
+
+# Betweenness centrality (brokerage)
+bc = betweenness_centrality(net)
+println(&quot;Betweenness: &quot;, round.(bc, digits=3))
+
+# Closeness centrality (proximity to all others)
+cc = closeness_centrality(net)
+println(&quot;Closeness: &quot;, round.(cc, digits=3))
+
+# Eigenvector centrality (connection to well-connected others)
+ec = eigenvector_centrality(net)
+println(&quot;Eigenvector: &quot;, round.(ec, digits=3))
+
+# PageRank (prestige via incoming links)
+pr = pagerank(net)
+println(&quot;PageRank: &quot;, round.(pr, digits=3))</code></pre><h3 id="Comparing-Centrality-Measures"><a class="docs-heading-anchor" href="#Comparing-Centrality-Measures">Comparing Centrality Measures</a><a id="Comparing-Centrality-Measures-1"></a><a class="docs-heading-anchor-permalink" href="#Comparing-Centrality-Measures" title="Permalink"></a></h3><p>Different centrality measures capture different aspects of importance:</p><table><tr><th style="text-align: right">Measure</th><th style="text-align: right">What It Captures</th><th style="text-align: right">Best For</th></tr><tr><td style="text-align: right">Degree</td><td style="text-align: right">Direct connections</td><td style="text-align: right">Activity, visibility</td></tr><tr><td style="text-align: right">Betweenness</td><td style="text-align: right">Brokerage position</td><td style="text-align: right">Gatekeepers, bridges</td></tr><tr><td style="text-align: right">Closeness</td><td style="text-align: right">Proximity to all</td><td style="text-align: right">Efficiency, reach</td></tr><tr><td style="text-align: right">Eigenvector</td><td style="text-align: right">Quality of connections</td><td style="text-align: right">Prestige, influence</td></tr><tr><td style="text-align: right">PageRank</td><td style="text-align: right">Incoming link prestige</td><td style="text-align: right">Web/citation analysis</td></tr><tr><td style="text-align: right">Bonacich power</td><td style="text-align: right">Connections + indirect ties</td><td style="text-align: right">Power, dependence</td></tr><tr><td style="text-align: right">Katz</td><td style="text-align: right">Weighted path counts</td><td style="text-align: right">Status, influence</td></tr></table><h3 id="Directed-Degree-Options"><a class="docs-heading-anchor" href="#Directed-Degree-Options">Directed Degree Options</a><a id="Directed-Degree-Options-1"></a><a class="docs-heading-anchor-permalink" href="#Directed-Degree-Options" title="Permalink"></a></h3><p>For directed networks, degree centrality supports three modes:</p><pre><code class="language-julia hljs"># In-degree: number of incoming ties (popularity)
+dc_in = degree_centrality(net; mode=:in)
+
+# Out-degree: number of outgoing ties (activity)
+dc_out = degree_centrality(net; mode=:out)
+
+# Total degree: sum of in and out
+dc_total = degree_centrality(net; mode=:total)
+
+# Normalized by maximum possible degree
+dc_norm = degree_centrality(net; mode=:total, normalized=true)</code></pre><h2 id="Step-3:-Analyze-Network-Structure"><a class="docs-heading-anchor" href="#Step-3:-Analyze-Network-Structure">Step 3: Analyze Network Structure</a><a id="Step-3:-Analyze-Network-Structure-1"></a><a class="docs-heading-anchor-permalink" href="#Step-3:-Analyze-Network-Structure" title="Permalink"></a></h2><p>SNA.jl provides many network-level measures for characterizing overall structure:</p><pre><code class="language-julia hljs"># Global indices
+println(&quot;Density:       &quot;, round(density(net), digits=3))
+println(&quot;Reciprocity:   &quot;, round(reciprocity(net), digits=3))
+println(&quot;Transitivity:  &quot;, round(transitivity(net), digits=3))
+println(&quot;Connectedness: &quot;, round(connectedness(net), digits=3))
+println(&quot;Hierarchy:     &quot;, round(hierarchy(net), digits=3))
+println(&quot;Efficiency:    &quot;, round(efficiency(net), digits=3))
+
+# Dyad census: mutual, asymmetric, null
+dc_result = dyad_census(net)
+println(&quot;Dyad census: M=$(dc_result.mutual), A=$(dc_result.asymmetric), N=$(dc_result.null)&quot;)
+
+# Triad census: 16 isomorphism classes
+tc = triad_census(net)
+println(&quot;Triad census: &quot;, tc)</code></pre><h3 id="Cohesion-Analysis"><a class="docs-heading-anchor" href="#Cohesion-Analysis">Cohesion Analysis</a><a id="Cohesion-Analysis-1"></a><a class="docs-heading-anchor-permalink" href="#Cohesion-Analysis" title="Permalink"></a></h3><p>Assess how well-connected the network is:</p><pre><code class="language-julia hljs"># Connected components
+comps = components(net; mode=:weak)
+println(&quot;Weak components: &quot;, length(comps))
+
+scomps = components(net; mode=:strong)
+println(&quot;Strong components: &quot;, length(scomps))
+
+# Largest component
+lc = largest_component(net)
+println(&quot;Largest component size: &quot;, length(lc))
+
+# Cutpoints (articulation points)
+cp = cutpoints(net)
+println(&quot;Cutpoints: &quot;, cp)
+
+# Bridges
+br = bridges(net)
+println(&quot;Bridges: &quot;, br)
+
+# K-cores
+k2 = kcores(net; k=2)
+println(&quot;2-core vertices: &quot;, k2)
+
+# Cliques (complete subgraphs)
+cl = cliques(net; min_size=3)
+println(&quot;Cliques (size &gt;= 3): &quot;, cl)</code></pre><h3 id="Path-Analysis"><a class="docs-heading-anchor" href="#Path-Analysis">Path Analysis</a><a id="Path-Analysis-1"></a><a class="docs-heading-anchor-permalink" href="#Path-Analysis" title="Permalink"></a></h3><p>Understand distances and reachability in the network:</p><pre><code class="language-julia hljs"># Geodesic distance matrix
+dist = geodesic_distance(net)
+println(&quot;Distance matrix:\n&quot;, dist)
+
+# Network diameter
+d = diameter(net)
+println(&quot;Diameter: &quot;, d)
+
+# Average path length
+apl = average_path_length(net)
+println(&quot;Average path length: &quot;, round(apl, digits=3))
+
+# Reachability matrix
+reach = reachability(net)
+println(&quot;Reachability (1 can reach 6): &quot;, reach[1, 6])</code></pre><h2 id="Step-4:-Structural-Equivalence-and-Blockmodels"><a class="docs-heading-anchor" href="#Step-4:-Structural-Equivalence-and-Blockmodels">Step 4: Structural Equivalence and Blockmodels</a><a id="Step-4:-Structural-Equivalence-and-Blockmodels-1"></a><a class="docs-heading-anchor-permalink" href="#Step-4:-Structural-Equivalence-and-Blockmodels" title="Permalink"></a></h2><p>Identify actors who occupy similar structural positions:</p><pre><code class="language-julia hljs"># Compute structural equivalence (correlation method)
+se = structural_equivalence(net; method=:correlation)
+println(&quot;Structural equivalence matrix:&quot;)
+for i in 1:nv(net)
+    println(&quot;  &quot;, round.(se[i, :], digits=2))
+end
+
+# Cluster vertices by structural equivalence
+assignments = equiv_clust(net; method=:structural, k=3)
+println(&quot;Cluster assignments: &quot;, assignments)
+
+# Create a blockmodel
+bm = blockmodel(net; k=3)
+println(&quot;Block membership: &quot;, bm.membership)
+println(&quot;Block density matrix:&quot;)
+for i in 1:bm.n_blocks
+    println(&quot;  &quot;, round.(bm.block_matrix[i, :], digits=2))
+end</code></pre><h3 id="Regular-Equivalence"><a class="docs-heading-anchor" href="#Regular-Equivalence">Regular Equivalence</a><a id="Regular-Equivalence-1"></a><a class="docs-heading-anchor-permalink" href="#Regular-Equivalence" title="Permalink"></a></h3><p>Regular equivalence is a weaker form: actors are equivalent if they have equivalent ties to equivalent others (rather than identical ties to the same others):</p><pre><code class="language-julia hljs"># Regular equivalence similarity
+re = regular_equivalence(net)
+println(&quot;Regular equivalence matrix:&quot;)
+for i in 1:nv(net)
+    println(&quot;  &quot;, round.(re[i, :], digits=2))
+end
+
+# Cluster by regular equivalence
+assignments_re = equiv_clust(net; method=:regular, k=3)
+println(&quot;Regular equivalence clusters: &quot;, assignments_re)</code></pre><h3 id="Consensus-Clustering"><a class="docs-heading-anchor" href="#Consensus-Clustering">Consensus Clustering</a><a id="Consensus-Clustering-1"></a><a class="docs-heading-anchor-permalink" href="#Consensus-Clustering" title="Permalink"></a></h3><p>When you have multiple clustering solutions, compute a consensus:</p><pre><code class="language-julia hljs"># Multiple runs with different methods or parameters
+clust1 = equiv_clust(net; method=:structural, k=3)
+clust2 = equiv_clust(net; method=:regular, k=3)
+
+# Consensus across clustering solutions
+cons = consensus([clust1, clust2])
+println(&quot;Consensus clustering: &quot;, cons)</code></pre><h2 id="Complete-Example"><a class="docs-heading-anchor" href="#Complete-Example">Complete Example</a><a id="Complete-Example-1"></a><a class="docs-heading-anchor-permalink" href="#Complete-Example" title="Permalink"></a></h2><pre><code class="language-julia hljs">using Network, SNA
+
+# Build a small organizational communication network
+net = Network(8; directed=true)
+
+# Core group (1-3): dense mutual ties
+add_edge!(net, 1, 2); add_edge!(net, 2, 1)
+add_edge!(net, 1, 3); add_edge!(net, 3, 1)
+add_edge!(net, 2, 3); add_edge!(net, 3, 2)
+
+# Periphery group (6-8): dense mutual ties
+add_edge!(net, 6, 7); add_edge!(net, 7, 6)
+add_edge!(net, 6, 8); add_edge!(net, 8, 6)
+add_edge!(net, 7, 8); add_edge!(net, 8, 7)
+
+# Bridge actors (4-5): connect core to periphery
+add_edge!(net, 3, 4); add_edge!(net, 4, 3)
+add_edge!(net, 4, 5); add_edge!(net, 5, 4)
+add_edge!(net, 5, 6); add_edge!(net, 6, 5)
+
+# --- Centrality Analysis ---
+println(&quot;=== Centrality Analysis ===&quot;)
+dc = degree_centrality(net; mode=:total, normalized=true)
+bc = betweenness_centrality(net)
+
+for i in 1:nv(net)
+    println(&quot;Vertex $i: degree=$(round(dc[i], digits=2)), betweenness=$(round(bc[i], digits=3))&quot;)
+end
+
+# Identify the most central actor
+most_central = argmax(bc)
+println(&quot;\nMost central (betweenness): Vertex $most_central&quot;)
+
+# --- Network Structure ---
+println(&quot;\n=== Network Structure ===&quot;)
+println(&quot;Density:      &quot;, round(density(net), digits=3))
+println(&quot;Reciprocity:  &quot;, round(reciprocity(net), digits=3))
+println(&quot;Transitivity: &quot;, round(transitivity(net), digits=3))
+println(&quot;Diameter:     &quot;, diameter(net))
+
+# --- Cohesion ---
+println(&quot;\n=== Cohesion ===&quot;)
+println(&quot;Components:   &quot;, length(components(net)))
+println(&quot;Cutpoints:    &quot;, cutpoints(net))
+println(&quot;Bridges:      &quot;, bridges(net))
+
+k2 = kcores(net; k=2)
+println(&quot;2-core:       &quot;, k2)
+
+# --- Blockmodel ---
+println(&quot;\n=== Blockmodel (3 blocks) ===&quot;)
+bm = blockmodel(net; k=3)
+println(&quot;Membership:   &quot;, bm.membership)
+println(&quot;Block matrix:&quot;)
+for i in 1:bm.n_blocks
+    println(&quot;  Block $i: &quot;, round.(bm.block_matrix[i, :], digits=2))
+end</code></pre><h2 id="Best-Practices"><a class="docs-heading-anchor" href="#Best-Practices">Best Practices</a><a id="Best-Practices-1"></a><a class="docs-heading-anchor-permalink" href="#Best-Practices" title="Permalink"></a></h2><ol><li><strong>Start with descriptives</strong>: Compute density, reciprocity, and transitivity before centrality to understand the overall structure</li><li><strong>Use multiple centrality measures</strong>: Different measures capture different aspects of importance; comparing them reveals richer insights</li><li><strong>Normalize for comparison</strong>: Use <code>normalized=true</code> when comparing centrality across networks of different sizes</li><li><strong>Check connectivity</strong>: Use <code>components()</code> to verify the network is connected before computing path-based measures like closeness or diameter</li><li><strong>Choose equivalence methods carefully</strong>: Structural equivalence is strict (same ties to same alters); regular equivalence is more flexible (similar ties to equivalent alters)</li><li><strong>Validate blockmodels</strong>: Try different values of <code>k</code> and compare block density matrices to find meaningful role structures</li></ol><h2 id="Next-Steps"><a class="docs-heading-anchor" href="#Next-Steps">Next Steps</a><a id="Next-Steps-1"></a><a class="docs-heading-anchor-permalink" href="#Next-Steps" title="Permalink"></a></h2><ul><li>Learn about all <a href="guide/centrality.html">Centrality Measures</a> in detail</li><li>Explore <a href="guide/measures.html">Network Measures</a> for global indices</li><li>Understand <a href="guide/cohesion.html">Cohesion</a> for subgroup analysis</li><li>Dive into <a href="guide/equivalence.html">Structural Equivalence</a> for positional analysis</li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="index.html">« Home</a><a class="docs-footer-nextpage" href="guide/centrality.html">Centrality »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Wednesday 11 February 2026 21:34">Wednesday 11 February 2026</span>. Using Julia version 1.12.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
