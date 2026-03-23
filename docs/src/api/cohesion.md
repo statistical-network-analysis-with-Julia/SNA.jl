@@ -4,42 +4,28 @@ This page documents cohesion functions available in SNA.jl.
 
 ## Components
 
+Functions for identifying connected subgroups.
+
 ```@docs
 components
-```
-
-## Largest Component
-
-```@docs
 largest_component
+bicomponents
 ```
 
-## Cliques
+## Subgroup Detection
+
+Functions for finding dense substructures within the network.
 
 ```@docs
 cliques
-```
-
-## K-Cores
-
-```@docs
 kcores
 ```
 
-## Cutpoints
+## Vulnerability
+
+Functions for identifying vertices and edges whose removal disconnects the network.
 
 ```@docs
 cutpoints
-```
-
-## Bridges
-
-```@docs
 bridges
-```
-
-## Bicomponents
-
-```@docs
-bicomponents
 ```

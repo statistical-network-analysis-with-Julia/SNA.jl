@@ -2,32 +2,21 @@
 
 This page documents the structural equivalence, regular equivalence, blockmodeling, and consensus clustering functions available in SNA.jl.
 
-## Structural Equivalence
+## Equivalence Measures
+
+Functions for computing similarity between vertex positions in the network.
 
 ```@docs
 structural_equivalence
-```
-
-## Regular Equivalence
-
-```@docs
 regular_equivalence
 ```
 
-## Equivalence Clustering
+## Clustering and Blockmodeling
+
+Functions for partitioning vertices into equivalent positions and summarizing inter-block relations.
 
 ```@docs
 equiv_clust
-```
-
-## Blockmodel
-
-```@docs
 blockmodel
-```
-
-## Consensus
-
-```@docs
 consensus
 ```

@@ -2,50 +2,31 @@
 
 This page documents all centrality functions available in SNA.jl.
 
-## Degree Centrality
+## Degree-Based Centrality
+
+Centrality measures based on the number of direct connections.
 
 ```@docs
 degree_centrality
 ```
 
-## Betweenness Centrality
+## Path-Based Centrality
+
+Centrality measures based on shortest paths and network flow.
 
 ```@docs
 betweenness_centrality
-```
-
-## Closeness Centrality
-
-```@docs
 closeness_centrality
+flowbet
 ```
 
-## Eigenvector Centrality
+## Spectral Centrality
+
+Centrality measures based on eigenvalues and iterative weighting of the adjacency matrix.
 
 ```@docs
 eigenvector_centrality
-```
-
-## Bonacich Power Centrality
-
-```@docs
 bonacich_power
-```
-
-## Katz Centrality
-
-```@docs
 katz_centrality
-```
-
-## PageRank
-
-```@docs
 pagerank
-```
-
-## Flow Betweenness
-
-```@docs
-flowbet
 ```

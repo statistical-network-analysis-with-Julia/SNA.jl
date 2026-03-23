@@ -1,0 +1,52 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+SNA.jl is a Julia port of the R `sna` package (StatNet collection). It provides social network analysis tools built on top of the `Network` package and `Graphs.jl`.
+
+## Common Commands
+
+```bash
+# Run tests
+julia --project -e 'using Pkg; Pkg.test()'
+
+# Run a single testset (no built-in filter; use @testset nesting or comment out others)
+julia --project -e 'using Pkg; Pkg.test()'
+
+# Load the package interactively
+julia --project -e 'using SNA'
+
+# Build documentation locally
+julia --project=docs docs/make.jl
+
+# Install dependencies
+julia --project -e 'using Pkg; Pkg.instantiate()'
+```
+
+## Architecture
+
+The package is organized into four submodules, each in its own directory under `src/`:
+
+- **`centrality/centrality.jl`** — Vertex-level centrality measures (degree, betweenness, closeness, eigenvector, Bonacich power, Katz, PageRank, flow betweenness)
+- **`measures/measures.jl`** — Network-level statistics (density, reciprocity, transitivity, dyad/triad census, hierarchy, efficiency, connectedness)
+- **`cohesion/cohesion.jl`** — Substructure detection (components, cliques, k-cores, cutpoints, bridges, bicomponents)
+- **`equivalence/equivalence.jl`** — Position analysis (structural equivalence, regular equivalence, blockmodeling, consensus clustering)
+
+All modules are included and all public functions exported from the top-level `src/SNA.jl` module.
+
+## Key Dependencies
+
+- **`Network`** — The core network data structure (`Network{T}`). All SNA functions accept `Network` objects and use its API (`nv`, `vertices`, `inneighbors`, `outneighbors`, `add_edge!`, `is_directed`, `network_density`, etc.)
+- **`Graphs.jl`** — Graph algorithms accessed via `net.graph` (the underlying `SimpleDiGraph`/`SimpleGraph`)
+- **`Clustering.jl`** — Used in equivalence module for hierarchical clustering / blockmodeling
+
+## Conventions
+
+- Functions follow R `sna` naming where possible (e.g., `gden`, `grecip`, `gtrans` as aliases)
+- Directed networks are the default; undirected networks are created with `Network(n; directed=false)`
+- Centrality functions return `Vector{Float64}`; equivalence functions return `Matrix{Float64}`
+- Tests are in a single file `test/runtests.jl` using nested `@testset` blocks
+- Documentation uses Documenter.jl with source pages in `docs/src/`
+- Requires Julia >= 1.9

@@ -4,139 +4,62 @@ This page documents network-level measures, path functions, random graph generat
 
 ## Network-Level Measures
 
-### Density
+### Density and Reciprocity
 
 ```@docs
 density
 gden
-```
-
-### Reciprocity
-
-```@docs
 reciprocity
 grecip
+mutuality
 ```
 
-### Transitivity
+### Transitivity and Hierarchy
 
 ```@docs
 transitivity
 gtrans
-```
-
-### Mutuality
-
-```@docs
-mutuality
-```
-
-### Hierarchy
-
-```@docs
 hierarchy
-```
-
-### Efficiency
-
-```@docs
 efficiency
-```
-
-### Connectedness
-
-```@docs
 connectedness
 ```
 
 ## Census Functions
 
-### Dyad Census
+Functions for classifying dyads, triads, and components.
 
 ```@docs
 dyad_census
-```
-
-### Triad Census
-
-```@docs
 triad_census
-```
-
-### Component Distribution
-
-```@docs
 component_dist
 ```
 
 ## Path Functions
 
-### Reachability
-
-```@docs
-reachability
-```
-
-### Geodesic Distance
+Functions for computing distances, reachability, and path-based summaries.
 
 ```@docs
 geodesic_distance
-```
-
-### Diameter
-
-```@docs
+reachability
 diameter
-```
-
-### Average Path Length
-
-```@docs
 average_path_length
 ```
 
 ## Random Graph Generators
 
-### rgraph
-
 ```@docs
 rgraph
-```
-
-### rgnm
-
-```@docs
 rgnm
-```
-
-### rgnp
-
-```@docs
 rgnp
 ```
 
 ## Layout Algorithms
 
-### Fruchterman-Reingold
+Functions for computing vertex positions for network visualization.
 
 ```@docs
 layout_fruchterman_reingold
-```
-
-### Kamada-Kawai
-
-```@docs
 layout_kamada_kawai
-```
-
-### Circle Layout
-
-```@docs
 layout_circle
-```
-
-### Random Layout
-
-```@docs
 layout_random
 ```

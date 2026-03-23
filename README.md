@@ -1,12 +1,27 @@
 # SNA.jl
 
-Social Network Analysis tools for Julia.
+[![Network Analysis](https://img.shields.io/badge/Network-Analysis-orange.svg)](https://github.com/Statistical-network-analysis-with-Julia/SNA.jl)
+[![Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://Statistical-network-analysis-with-Julia.github.io/SNA.jl/stable/)
+[![Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://Statistical-network-analysis-with-Julia.github.io/SNA.jl/dev/)
+[![Julia](https://img.shields.io/badge/Julia-1.9+-purple.svg)](https://julialang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+<p align="center">
+  <img src="docs/src/assets/logo.svg" alt="SNA.jl icon" width="160">
+</p>
+
+A Julia implementation of **Social Network Analysis** tools for descriptive analysis of social networks.
 
 ## Overview
 
-SNA.jl provides a comprehensive suite of descriptive analysis tools for social networks, including centrality measures, cohesion analysis, structural equivalence, and network-level statistics.
+SNA.jl provides a comprehensive suite of descriptive analysis tools for social networks, accounting for:
 
-This package is a Julia port of the R `sna` package from the StatNet collection.
+- **Centrality**: Vertex-level importance measures including degree, betweenness, closeness, eigenvector, and PageRank
+- **Network measures**: Global statistics such as density, reciprocity, transitivity, and dyad/triad census
+- **Cohesion**: Substructure detection including components, cliques, k-cores, cutpoints, and bridges
+- **Equivalence**: Positional analysis including structural equivalence, regular equivalence, and blockmodeling
+
+SNA.jl is a port of the R [`sna`](https://cran.r-project.org/package=sna) package from the StatNet collection, providing efficient tools for analysing both directed and undirected networks.
 
 ## Installation
 
@@ -15,145 +30,264 @@ using Pkg
 Pkg.add(url="https://github.com/Statistical-network-analysis-with-Julia/SNA.jl")
 ```
 
-## Features
+## Functions Implemented
 
-- **Centrality**: Degree, betweenness, closeness, eigenvector, Bonacich power, PageRank
-- **Cohesion**: Components, cliques, k-cores, cutpoints, bridges
-- **Equivalence**: Structural equivalence, regular equivalence, blockmodels
-- **Measures**: Density, reciprocity, transitivity, dyad/triad census
+### 1. Centrality Measures
 
-## Quick Start
+Vertex-level measures of structural importance.
+
+#### Degree-Based Centrality
+
+```julia
+degree_centrality(net; mode=:total, normalized=false)  # In-degree, out-degree, or total
+```
+
+#### Path-Based Centrality
+
+```julia
+betweenness_centrality(net; normalized=true)   # Fraction of shortest paths through vertex
+closeness_centrality(net; normalized=true)      # Inverse average distance to all others
+flowbet(net)                                    # Flow betweenness (all paths, not just shortest)
+```
+
+#### Spectral Centrality
+
+```julia
+eigenvector_centrality(net; max_iter=100, tol=1e-6)  # Centrality weighted by neighbor centrality
+bonacich_power(net; β=0.5, normalized=true)           # Bonacich power (direct and indirect ties)
+katz_centrality(net; α=0.1, β=1.0)                    # Katz centrality with damping factor
+pagerank(net; α=0.85, max_iter=100, tol=1e-6)         # Google PageRank
+```
+
+### 2. Network-Level Measures
+
+Global statistics characterising the network as a whole.
+
+#### Density and Reciprocity
+
+```julia
+density(net)                          # Proportion of possible edges present
+reciprocity(net; method=:dyadic)      # Proportion of mutual ties (:dyadic or :edgewise)
+mutuality(net)                        # Proportion of connected pairs that are symmetric
+gden(net)                             # Alias for density (R sna compatibility)
+grecip(net)                           # Alias for reciprocity (R sna compatibility)
+```
+
+#### Transitivity and Hierarchy
+
+```julia
+transitivity(net; type=:global)       # Clustering coefficient (:global, :local, or :average)
+hierarchy(net)                        # Krackhardt's hierarchy (asymmetric reachability)
+efficiency(net)                       # 1 minus proportion of excess edges over a tree
+connectedness(net)                    # Proportion of pairs where one can reach the other
+gtrans(net)                           # Alias for transitivity (R sna compatibility)
+```
+
+#### Census Functions
+
+```julia
+dyad_census(net)                      # Counts of mutual, asymmetric, and null dyads
+triad_census(net)                     # 16-element vector of triad isomorphism classes
+component_dist(net)                   # Distribution of component sizes
+```
+
+### 3. Cohesion Analysis
+
+Functions for detecting substructures and assessing network vulnerability.
+
+#### Components
+
+```julia
+components(net; mode=:weak)           # Connected components (:weak or :strong)
+largest_component(net; mode=:weak)    # Vertices in the largest component
+bicomponents(net)                     # Biconnected components (no cutpoints)
+```
+
+#### Subgroup Detection
+
+```julia
+cliques(net; min_size=3)              # Maximal cliques of at least min_size
+kcores(net; k=1)                      # Vertices in the k-core
+```
+
+#### Vulnerability
+
+```julia
+cutpoints(net)                        # Vertices whose removal disconnects the network
+bridges(net)                          # Edges whose removal disconnects the network
+```
+
+### 4. Path Analysis
+
+Functions for computing distances and reachability.
+
+```julia
+geodesic_distance(net)                # Matrix of shortest path distances (Inf if unreachable)
+diameter(net)                         # Longest shortest path
+average_path_length(net)              # Mean shortest path over reachable pairs
+reachability(net)                     # Boolean matrix of reachability between all pairs
+```
+
+### 5. Structural Equivalence
+
+Functions for analysing positional similarity and building blockmodels.
+
+#### Equivalence Measures
+
+```julia
+structural_equivalence(net; method=:correlation)  # Similarity matrix (:correlation, :euclidean, :hamming)
+regular_equivalence(net; max_iter=100, tol=1e-6)  # REGE algorithm for regular equivalence
+```
+
+#### Clustering and Blockmodeling
+
+```julia
+equiv_clust(net; method=:structural, k=nothing)   # Cluster vertices by equivalence
+blockmodel(net; k=2, method=:structural)           # Block densities from equivalence clustering
+consensus(clusterings)                              # Consensus from multiple clustering solutions
+```
+
+### 6. Random Graph Generators
+
+```julia
+rgraph(n; tprob=0.1)                 # General random graph
+rgnm(; n=100, m=200)                 # Erdős-Rényi G(n,m)
+rgnp(; n=100, p=0.1)                 # Erdős-Rényi G(n,p)
+```
+
+### 7. Layout Algorithms
+
+Functions for computing vertex positions for network visualisation.
+
+```julia
+layout_fruchterman_reingold(net)      # Force-directed layout
+layout_kamada_kawai(net)              # Energy-based layout
+layout_circle(net)                    # Circular layout
+layout_random(net)                    # Random layout
+```
+
+## Usage
+
+### Basic Example
 
 ```julia
 using Network
 using SNA
 
 # Create a network
-net = Network{Int}(; n=10, directed=false)
-for (i, j) in [(1,2), (2,3), (3,4), (4,5), (1,3), (2,4), (3,5)]
-    add_edge!(net, i, j)
-end
+net = Network(5)
+add_edge!(net, 1, 2)
+add_edge!(net, 1, 3)
+add_edge!(net, 2, 3)
+add_edge!(net, 3, 4)
+add_edge!(net, 4, 5)
 
 # Centrality measures
-deg = degree_centrality(net)
+deg = degree_centrality(net; mode=:out)
 bet = betweenness_centrality(net)
 clo = closeness_centrality(net)
 
 # Network-level measures
 d = density(net)
+r = reciprocity(net)
 t = transitivity(net)
 ```
 
-## Centrality Measures
+### Dyad and Triad Census
 
 ```julia
-# Degree centrality
-degree_centrality(net)
-degree_centrality(net; mode=:in)   # In-degree (directed)
-degree_centrality(net; mode=:out)  # Out-degree (directed)
+# Complete directed graph on 3 vertices
+net = Network(3)
+for (i, j) in [(1,2), (2,1), (1,3), (3,1), (2,3), (3,2)]
+    add_edge!(net, i, j)
+end
 
-# Betweenness centrality
-betweenness_centrality(net; normalized=true)
-
-# Closeness centrality
-closeness_centrality(net)
-
-# Eigenvector centrality
-eigenvector_centrality(net)
-
-# Bonacich power centrality
-bonacich_power(net; beta=0.5)
-
-# Katz centrality
-katz_centrality(net; alpha=0.1)
-
-# PageRank
-pagerank(net; damping=0.85)
+census = dyad_census(net)   # (mutual=3, asymmetric=0, null=0)
+tc = triad_census(net)      # 16-element vector of triad counts
 ```
 
-## Network-Level Measures
+### Cohesion Analysis
 
 ```julia
-# Density
-density(net)
+# Network with two components
+net = Network(6)
+add_edge!(net, 1, 2)
+add_edge!(net, 2, 3)
+add_edge!(net, 4, 5)
+add_edge!(net, 5, 6)
 
-# Reciprocity (directed networks)
-reciprocity(net)
+comps = components(net; mode=:weak)     # 2 components
+largest = largest_component(net)         # Vertices in the larger component
 
-# Transitivity (clustering coefficient)
-transitivity(net)
+# Undirected network for k-cores and cutpoints
+net = Network(5; directed=false)
+add_edge!(net, 1, 2)
+add_edge!(net, 1, 3)
+add_edge!(net, 2, 3)
+add_edge!(net, 3, 4)
+add_edge!(net, 4, 5)
 
-# Dyad census
-dc = dyad_census(net)  # Returns (mutual, asymmetric, null)
-
-# Triad census (16 isomorphism classes)
-tc = triad_census(net)
+core_2 = kcores(net; k=2)              # [1, 2, 3] (the triangle)
+cuts = cutpoints(net)                   # [3, 4] (articulation points)
+br = bridges(net)                       # Edges whose removal disconnects
 ```
 
-## Cohesion Analysis
+### Structural Equivalence and Blockmodeling
 
 ```julia
-# Connected components
-comps = components(net)
+net = Network(4)
+add_edge!(net, 1, 3)
+add_edge!(net, 1, 4)
+add_edge!(net, 2, 3)
+add_edge!(net, 2, 4)
 
-# Largest component
-lc = largest_component(net)
+# Vertices 1 and 2 have identical tie patterns
+se = structural_equivalence(net; method=:correlation)
+se[1, 2]  # 1.0 (perfectly equivalent)
 
-# K-cores
-cores = kcores(net)
-
-# Cliques
-cliques(net; min_size=3)
-
-# Cutpoints (articulation points)
-cutpoints(net)
-
-# Bridges
-bridges(net)
+# Build a blockmodel
+bm = blockmodel(net; k=2)
+bm.membership      # Block assignments
+bm.block_matrix     # Density of ties between blocks
 ```
 
-## Structural Equivalence
+### Path Analysis
 
 ```julia
-# Structural equivalence matrix
-se = structural_equivalence(net)
+net = Network(4)
+add_edge!(net, 1, 2)
+add_edge!(net, 2, 3)
+add_edge!(net, 3, 4)
 
-# Regular equivalence
-re = regular_equivalence(net)
+dist = geodesic_distance(net)
+dist[1, 4]          # 3.0 (three hops)
+dist[4, 1]          # Inf (unreachable in directed network)
 
-# Blockmodel
-bm = blockmodel(net, membership)
+diameter(net)               # 3.0
+average_path_length(net)    # Mean over reachable pairs
 ```
 
-## Path Analysis
+## Running Tests
 
 ```julia
-# Geodesic distances
-dists = geodesic_distance(net)
-
-# Diameter
-d = diameter(net)
-
-# Average path length
-apl = average_path_length(net)
-
-# Reachability matrix
-reach = reachability(net)
+include("test/runtests.jl")
 ```
 
-## Random Graphs
+## Documentation
 
-```julia
-# Erdos-Renyi G(n,m)
-net = rgnm(n=100, m=200)
+For more detailed documentation, see:
 
-# Erdos-Renyi G(n,p)
-net = rgnp(n=100, p=0.1)
+- [Stable Documentation](https://Statistical-network-analysis-with-Julia.github.io/SNA.jl/stable/)
+- [Development Documentation](https://Statistical-network-analysis-with-Julia.github.io/SNA.jl/dev/)
 
-# General random graph
-net = rgraph(n=100, tprob=0.1)
-```
+## References
+
+1. Wasserman, S., Faust, K. (1994). *Social Network Analysis: Methods and Applications*. Cambridge University Press.
+
+2. Butts, C.T. (2008). Social network analysis with sna. *Journal of Statistical Software*, 24(6), 1-51.
+
+3. Butts, C.T. (2020). sna: Tools for Social Network Analysis. R package. [https://cran.r-project.org/package=sna](https://cran.r-project.org/package=sna)
 
 ## License
 
-MIT License
+MIT License - see [LICENSE](LICENSE) for details.
