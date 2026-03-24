@@ -1,6 +1,6 @@
 # Measures API Reference
 
-This page documents network-level measures, path functions, random graph generators, and layout algorithms available in SNA.jl.
+This page documents network-level measures, path functions, and census functions available in SNA.jl.
 
 ## Network-Level Measures
 
@@ -45,21 +45,3 @@ diameter
 average_path_length
 ```
 
-## Random Graph Generators
-
-```@docs
-rgraph
-rgnm
-rgnp
-```
-
-## Layout Algorithms
-
-Functions for computing vertex positions for network visualization.
-
-```@docs
-layout_fruchterman_reingold
-layout_kamada_kawai
-layout_circle
-layout_random
-```

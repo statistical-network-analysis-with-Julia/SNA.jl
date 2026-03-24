@@ -9,21 +9,21 @@ SNA.jl is a Julia port of the R `sna` package (StatNet collection). It provides 
 ## Common Commands
 
 ```bash
-# Run tests
-julia --project -e 'using Pkg; Pkg.test()'
+# Install dependencies (must resolve Network first — see note below)
+julia --project -e 'using Pkg; Pkg.instantiate()'
 
-# Run a single testset (no built-in filter; use @testset nesting or comment out others)
+# Run tests
 julia --project -e 'using Pkg; Pkg.test()'
 
 # Load the package interactively
 julia --project -e 'using SNA'
 
-# Build documentation locally
+# Build documentation locally (install docs deps first)
+julia --project=docs -e 'using Pkg; Pkg.instantiate()'
 julia --project=docs docs/make.jl
-
-# Install dependencies
-julia --project -e 'using Pkg; Pkg.instantiate()'
 ```
+
+There is no built-in test filter; to run a single `@testset`, comment out the others in `test/runtests.jl`.
 
 ## Architecture
 
@@ -38,7 +38,7 @@ All modules are included and all public functions exported from the top-level `s
 
 ## Key Dependencies
 
-- **`Network`** — The core network data structure (`Network{T}`). All SNA functions accept `Network` objects and use its API (`nv`, `vertices`, `inneighbors`, `outneighbors`, `add_edge!`, `is_directed`, `network_density`, etc.)
+- **`Network`** — The core network data structure (`Network{T}`). All SNA functions accept `Network` objects and use its API (`nv`, `vertices`, `inneighbors`, `outneighbors`, `add_edge!`, `is_directed`, `network_density`, `as_matrix`, etc.). **This is an unregistered package** (UUID `a1b2c3d4-...`); it must be added via a local path or git URL before anything else will work. The `docs/Project.toml` `[sources]` paths may need updating to match the actual location of the Network package on the current machine.
 - **`Graphs.jl`** — Graph algorithms accessed via `net.graph` (the underlying `SimpleDiGraph`/`SimpleGraph`)
 - **`Clustering.jl`** — Used in equivalence module for hierarchical clustering / blockmodeling
 

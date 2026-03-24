@@ -13,7 +13,11 @@ Alias for network_density from Network.jl.
 """
 density(net) = network_density(net)
 
-# Alias for R compatibility
+"""
+    gden(net) -> Float64
+
+Alias for [`density`](@ref) (R `sna` compatibility).
+"""
 gden(net) = density(net)
 
 """
@@ -63,7 +67,11 @@ function reciprocity(net; method::Symbol=:dyadic)
     end
 end
 
-# Alias for R compatibility
+"""
+    grecip(net; kwargs...) -> Float64
+
+Alias for [`reciprocity`](@ref) (R `sna` compatibility).
+"""
 grecip(net; kwargs...) = reciprocity(net; kwargs...)
 
 """
@@ -90,7 +98,11 @@ function transitivity(net; type::Symbol=:global)
     end
 end
 
-# Alias for R compatibility
+"""
+    gtrans(net; kwargs...) -> Float64
+
+Alias for [`transitivity`](@ref) (R `sna` compatibility).
+"""
 gtrans(net; kwargs...) = transitivity(net; kwargs...)
 
 """
