@@ -4,7 +4,7 @@ using Test
 
 @testset "SNA.jl" begin
     @testset "Degree Centrality" begin
-        net = Network(5)
+        net = network(5)
         add_edge!(net, 1, 2)
         add_edge!(net, 1, 3)
         add_edge!(net, 2, 3)
@@ -22,7 +22,7 @@ using Test
 
     @testset "Network Measures" begin
         # Complete directed graph on 3 vertices
-        net = Network(3)
+        net = network(3)
         add_edge!(net, 1, 2)
         add_edge!(net, 2, 1)
         add_edge!(net, 1, 3)
@@ -42,7 +42,7 @@ using Test
 
     @testset "Components" begin
         # Network with 2 components
-        net = Network(6)
+        net = network(6)
         add_edge!(net, 1, 2)
         add_edge!(net, 2, 3)
         add_edge!(net, 4, 5)
@@ -57,7 +57,7 @@ using Test
     end
 
     @testset "Geodesic Distance" begin
-        net = Network(4)
+        net = network(4)
         add_edge!(net, 1, 2)
         add_edge!(net, 2, 3)
         add_edge!(net, 3, 4)
@@ -74,7 +74,7 @@ using Test
 
     @testset "Structural Equivalence" begin
         # Network where vertices 1 and 2 have identical patterns
-        net = Network(4)
+        net = network(4)
         add_edge!(net, 1, 3)
         add_edge!(net, 1, 4)
         add_edge!(net, 2, 3)
@@ -86,7 +86,7 @@ using Test
     end
 
     @testset "Blockmodel" begin
-        net = Network(4)
+        net = network(4)
         add_edge!(net, 1, 2)
         add_edge!(net, 2, 1)
         add_edge!(net, 3, 4)
@@ -100,7 +100,7 @@ using Test
 
     @testset "K-cores" begin
         # Create a network where some vertices have higher core numbers
-        net = Network(5; directed=false)
+        net = network(5; directed=false)
         add_edge!(net, 1, 2)
         add_edge!(net, 1, 3)
         add_edge!(net, 2, 3)  # 1,2,3 form a triangle
@@ -112,7 +112,7 @@ using Test
     end
 
     @testset "Cutpoints and Bridges" begin
-        net = Network(5; directed=false)
+        net = network(5; directed=false)
         add_edge!(net, 1, 2)
         add_edge!(net, 2, 3)
         add_edge!(net, 3, 4)

@@ -61,8 +61,11 @@ The k-core is the maximal subgraph where every vertex has degree at least k.
 Vector of vertices in the k-core.
 """
 function kcores(net; k::Int=1)
-    n = nv(net)
-    core = Graphs.core_number(net.graph)
+    g = net.graph
+    if !is_directed(net)
+        g = Graphs.SimpleGraph(g)
+    end
+    core = Graphs.core_number(g)
 
     return findall(c -> c >= k, core)
 end
@@ -75,7 +78,8 @@ Find all cutpoints (articulation points) in the network.
 A cutpoint is a vertex whose removal disconnects the network.
 """
 function cutpoints(net)
-    return Graphs.articulation(net.graph)
+    g = Graphs.SimpleGraph(net.graph)
+    return Graphs.articulation(g)
 end
 
 """
@@ -86,7 +90,8 @@ Find all bridges in the network.
 A bridge is an edge whose removal disconnects the network.
 """
 function bridges(net)
-    bridge_edges = Graphs.bridges(net.graph)
+    g = Graphs.SimpleGraph(net.graph)
+    bridge_edges = Graphs.bridges(g)
     return [(src(e), dst(e)) for e in bridge_edges]
 end
 

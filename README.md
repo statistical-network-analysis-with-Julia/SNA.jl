@@ -1,8 +1,8 @@
 # SNA.jl
 
-[![Network Analysis](https://img.shields.io/badge/Network-Analysis-orange.svg)](https://github.com/Statistical-network-analysis-with-Julia/SNA.jl)
-[![Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://Statistical-network-analysis-with-Julia.github.io/SNA.jl/stable/)
-[![Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://Statistical-network-analysis-with-Julia.github.io/SNA.jl/dev/)
+[![Network Analysis](https://img.shields.io/badge/Network-Analysis-orange.svg)](https://github.com/statistical-network-analysis-with-Julia/SNA.jl)
+[![Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://statistical-network-analysis-with-Julia.github.io/SNA.jl/stable/)
+[![Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://statistical-network-analysis-with-Julia.github.io/SNA.jl/dev/)
 [![Julia](https://img.shields.io/badge/Julia-1.9+-purple.svg)](https://julialang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -27,7 +27,7 @@ SNA.jl is a port of the R [`sna`](https://cran.r-project.org/package=sna) packag
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/Statistical-network-analysis-with-Julia/SNA.jl")
+Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/SNA.jl")
 ```
 
 ## Functions Implemented
@@ -277,8 +277,8 @@ include("test/runtests.jl")
 
 For more detailed documentation, see:
 
-- [Stable Documentation](https://Statistical-network-analysis-with-Julia.github.io/SNA.jl/stable/)
-- [Development Documentation](https://Statistical-network-analysis-with-Julia.github.io/SNA.jl/dev/)
+- [Stable Documentation](https://statistical-network-analysis-with-Julia.github.io/SNA.jl/stable/)
+- [Development Documentation](https://statistical-network-analysis-with-Julia.github.io/SNA.jl/dev/)
 
 ## References
 
