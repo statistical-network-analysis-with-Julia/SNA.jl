@@ -38,15 +38,16 @@ All modules are included and all public functions exported from the top-level `s
 
 ## Key Dependencies
 
-- **`Network`** — The core network data structure (`Network{T}`). All SNA functions accept `Network` objects and use its API (`nv`, `vertices`, `inneighbors`, `outneighbors`, `add_edge!`, `is_directed`, `network_density`, `as_matrix`, etc.). **This is an unregistered package** (UUID `a1b2c3d4-...`); it must be added via a local path or git URL before anything else will work. The `docs/Project.toml` `[sources]` paths may need updating to match the actual location of the Network package on the current machine.
+- **`Network`** — The core network data structure (`Network{T}`). All SNA functions accept `Network` objects and use its API (`nv`, `vertices`, `inneighbors`, `outneighbors`, `add_edge!`, `is_directed`, `network_density`, `as_matrix`, etc.). **This is an unregistered package** (UUID `027a387e-...`); it must be added via a local path or git URL before anything else will work. The `docs/Project.toml` `[sources]` paths may need updating to match the actual location of the Network package on the current machine.
 - **`Graphs.jl`** — Graph algorithms accessed via `net.graph` (the underlying `SimpleDiGraph`/`SimpleGraph`)
-- **`Clustering.jl`** — Used in equivalence module for hierarchical clustering / blockmodeling
+- Hierarchical clustering for `equiv_clust`/`blockmodel` is implemented in-package (average-linkage UPGMA in `equivalence.jl`); there is no Clustering.jl dependency
 
 ## Conventions
 
 - Functions follow R `sna` naming where possible (e.g., `gden`, `grecip`, `gtrans` as aliases)
+- Measures follow R `sna` conventions exactly where a counterpart exists; golden-master values from sna 2.8 (Sampson samplike, Padgett flomarriage) are baked into the tests
 - Directed networks are the default; undirected networks are created with `Network(n; directed=false)`
 - Centrality functions return `Vector{Float64}`; equivalence functions return `Matrix{Float64}`
 - Tests are in a single file `test/runtests.jl` using nested `@testset` blocks
 - Documentation uses Documenter.jl with source pages in `docs/src/`
-- Requires Julia >= 1.9
+- Requires Julia >= 1.12 (Network.jl cannot load on earlier versions)

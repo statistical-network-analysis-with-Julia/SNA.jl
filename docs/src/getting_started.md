@@ -73,7 +73,7 @@ net_random = rgnp(20, 0.15)
 net_fixed = rgnm(20, 40)
 
 # Directed random graph with specified density
-net_dense = rgraph(10; density=0.3)
+net_dense = rgraph(10; tprob=0.3)
 ```
 
 ## Step 2: Compute Centrality Measures

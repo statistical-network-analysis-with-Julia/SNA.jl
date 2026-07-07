@@ -96,14 +96,17 @@ function bridges(net)
 end
 
 """
-    bicomponents(net) -> Vector{Vector{Int}}
+    bicomponents(net) -> Vector{Vector{Tuple{Int,Int}}}
 
-Find biconnected components of the network.
+Find biconnected components of the network (as lists of edges).
 
-A biconnected component is a maximal subgraph that has no cutpoints.
+Biconnectivity is an undirected concept; directed networks are treated as
+their underlying undirected graph.
 """
 function bicomponents(net)
-    return Graphs.biconnected_components(net.graph)
+    g = Graphs.SimpleGraph(net.graph)
+    comps = Graphs.biconnected_components(g)
+    return [[(src(e), dst(e)) for e in comp] for comp in comps]
 end
 
 """

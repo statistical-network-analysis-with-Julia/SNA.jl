@@ -11,9 +11,8 @@ module SNA
 
 using Graphs
 using LinearAlgebra
-using SparseArrays
+using Random
 using Statistics
-using StatsBase
 using Network
 
 # Centrality measures
@@ -53,5 +52,7 @@ include("centrality/centrality.jl")
 include("measures/measures.jl")
 include("cohesion/cohesion.jl")
 include("equivalence/equivalence.jl")
+include("random/random.jl")
+include("layout/layout.jl")
 
 end # module

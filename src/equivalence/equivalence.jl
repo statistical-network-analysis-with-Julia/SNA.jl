@@ -6,7 +6,6 @@ including structural equivalence, regular equivalence, and blockmodeling.
 """
 
 using LinearAlgebra
-using Clustering
 using Statistics
 
 """
@@ -79,7 +78,10 @@ Compute regular equivalence between all pairs of vertices.
 Two vertices are regularly equivalent if they have equivalent ties to
 equivalent others (a recursive definition).
 
-Uses the REGE algorithm.
+Note: this uses an iterative neighbor-matching similarity (CATREGE-style
+best-match averaging over in- and out-neighborhoods). It is in the spirit
+of White & Reitz regular equivalence but is **not** the Burt/White REGE
+algorithm, so scores are not directly comparable to UCINET/R REGE output.
 """
 function regular_equivalence(net; max_iter::Int=100, tol::Float64=1e-6)
     n = nv(net)
@@ -140,15 +142,19 @@ end
 """
     equiv_clust(net; method=:structural, k=nothing) -> Vector{Int}
 
-Cluster vertices by equivalence.
+Cluster vertices by equivalence using agglomerative hierarchical clustering
+with average linkage (UPGMA) on the equivalence distance matrix, in the
+spirit of R `sna::equiv.clust`.
 
 # Arguments
 - `net`: Network object
 - `method::Symbol=:structural`: Equivalence type (:structural or :regular)
-- `k::Union{Int,Nothing}=nothing`: Number of clusters (auto-detected if nothing)
+- `k::Union{Int,Nothing}=nothing`: Number of clusters (defaults to
+  `max(2, n ÷ 4)`; values `≥ n` yield the trivial one-vertex-per-cluster
+  solution)
 
 # Returns
-Vector of cluster assignments for each vertex.
+Vector of cluster assignments in `1:k` for each vertex.
 """
 function equiv_clust(net; method::Symbol=:structural, k::Union{Int,Nothing}=nothing)
     # Compute distance matrix
@@ -166,58 +172,60 @@ function equiv_clust(net; method::Symbol=:structural, k::Union{Int,Nothing}=noth
         dist[i, i] = 0.0
     end
 
-    # Hierarchical clustering
     n = nv(net)
     if isnothing(k)
         k = min(n, max(2, n ÷ 4))  # Heuristic: n/4 clusters
     end
+    k = clamp(k, 1, n)
 
-    # Simple k-medoids-like clustering
-    assignments = ones(Int, n)
-    if k >= n
-        return collect(1:n)
-    end
+    return _hclust_average(dist, k)
+end
 
-    # Initialize cluster centers
-    centers = collect(1:k)
+# Agglomerative hierarchical clustering (average linkage), cut at k
+# clusters. Returns assignments renumbered to 1:k.
+function _hclust_average(dist::Matrix{Float64}, k::Int)
+    n = size(dist, 1)
+    clusters = [[i] for i in 1:n]
+    d = copy(dist)  # inter-cluster distances, indexed like `clusters`
+    active = trues(n)
 
-    for _ in 1:100
-        # Assign vertices to nearest center
+    n_active = n
+    while n_active > k
+        # Find the closest active pair
+        best = (0, 0)
+        best_d = Inf
         for i in 1:n
-            min_dist = Inf
-            for (c_idx, c) in enumerate(centers)
-                if dist[i, c] < min_dist
-                    min_dist = dist[i, c]
-                    assignments[i] = c_idx
+            active[i] || continue
+            for j in (i+1):n
+                active[j] || continue
+                if d[i, j] < best_d
+                    best_d = d[i, j]
+                    best = (i, j)
                 end
             end
         end
+        a, b = best
 
-        # Update centers
-        new_centers = zeros(Int, k)
-        for c_idx in 1:k
-            members = findall(==(c_idx), assignments)
-            if !isempty(members)
-                # Find medoid (member with minimum total distance to others)
-                min_total = Inf
-                for m in members
-                    total = sum(dist[m, o] for o in members)
-                    if total < min_total
-                        min_total = total
-                        new_centers[c_idx] = m
-                    end
-                end
-            else
-                new_centers[c_idx] = centers[c_idx]
-            end
+        # Average-linkage update: merge b into a
+        na, nb = length(clusters[a]), length(clusters[b])
+        for m in 1:n
+            (active[m] && m != a && m != b) || continue
+            d[a, m] = d[m, a] = (na * d[a, m] + nb * d[b, m]) / (na + nb)
         end
-
-        if new_centers == centers
-            break
-        end
-        centers = new_centers
+        append!(clusters[a], clusters[b])
+        active[b] = false
+        n_active -= 1
     end
 
+    assignments = zeros(Int, n)
+    label = 0
+    for i in 1:n
+        active[i] || continue
+        label += 1
+        for v in clusters[i]
+            assignments[v] = label
+        end
+    end
     return assignments
 end
 
@@ -233,11 +241,14 @@ NamedTuple with:
 - `n_blocks::Int`: Number of blocks
 """
 function blockmodel(net; k::Int, method::Symbol=:structural)
+    n = nv(net)
     membership = equiv_clust(net; method=method, k=k)
     A = as_matrix(net)
-    n = nv(net)
+    # equiv_clust clamps k to at most n; size blocks by actual labels
+    k = maximum(membership)
 
-    # Compute block densities
+    # Compute block densities (diagonal blocks average over ordered
+    # off-diagonal pairs within the block)
     block_matrix = zeros(k, k)
     block_counts = zeros(Int, k, k)
 

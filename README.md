@@ -150,9 +150,9 @@ consensus(clusterings)                              # Consensus from multiple cl
 ### 6. Random Graph Generators
 
 ```julia
-rgraph(n; tprob=0.1)                 # General random graph
-rgnm(; n=100, m=200)                 # Erdős-Rényi G(n,m)
-rgnp(; n=100, p=0.1)                 # Erdős-Rényi G(n,p)
+rgraph(10; tprob=0.1)                # Bernoulli random digraph (sna-style)
+rgnm(100, 200)                       # Erdős-Rényi G(n,m)
+rgnp(100, 0.1)                       # Erdős-Rényi G(n,p)
 ```
 
 ### 7. Layout Algorithms
