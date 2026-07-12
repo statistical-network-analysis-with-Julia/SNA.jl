@@ -30,7 +30,7 @@ Networks are created using the `Network.jl` package:
 using Network, SNA
 
 # Create a directed network with 6 vertices
-net = Network(6; directed=true)
+net = network(6; directed=true)
 
 # Add edges representing a communication network
 add_edge!(net, 1, 2)  # Alice → Bob
@@ -53,7 +53,7 @@ println("Directed: ", is_directed(net))  # true
 
 ```julia
 # Undirected friendship network
-net_undir = Network(5; directed=false)
+net_undir = network(5; directed=false)
 add_edge!(net_undir, 1, 2)
 add_edge!(net_undir, 1, 3)
 add_edge!(net_undir, 2, 3)
@@ -83,7 +83,7 @@ Centrality measures identify the most important actors in the network:
 ```julia
 using Network, SNA
 
-net = Network(6; directed=true)
+net = network(6; directed=true)
 add_edge!(net, 1, 2); add_edge!(net, 1, 3)
 add_edge!(net, 2, 1); add_edge!(net, 2, 4)
 add_edge!(net, 3, 4); add_edge!(net, 3, 5)
@@ -282,7 +282,7 @@ println("Consensus clustering: ", cons)
 using Network, SNA
 
 # Build a small organizational communication network
-net = Network(8; directed=true)
+net = network(8; directed=true)
 
 # Core group (1-3): dense mutual ties
 add_edge!(net, 1, 2); add_edge!(net, 2, 1)

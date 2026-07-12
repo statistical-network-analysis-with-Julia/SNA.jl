@@ -1,6 +1,8 @@
 using SNA
 using Network
+using Graphs
 using Random
+using Statistics
 using Test
 
 # Sampson monastery "liking" network (samplike, directed, n=18), exported
@@ -36,6 +38,100 @@ function florentine()
     end
     return net
 end
+
+# Brute-force O(n^3) triad census, kept as the reference implementation for
+# verifying the edge-driven Batagelj-Mrvar algorithm in src.
+function ref_triad_census(net)
+    n = nv(net)
+
+    if !is_directed(net)
+        census = zeros(Int, 4)
+        for i in 1:n, j in (i+1):n, k in (j+1):n
+            m = (has_edge(net, i, j) ? 1 : 0) +
+                (has_edge(net, i, k) ? 1 : 0) +
+                (has_edge(net, j, k) ? 1 : 0)
+            census[m+1] += 1
+        end
+        return census
+    end
+
+    census = zeros(Int, 16)
+    for i in 1:n, j in (i+1):n, k in (j+1):n
+        census[ref_triad_type(net, i, j, k)] += 1
+    end
+    return census
+end
+
+# Classify the directed triad {a, b, c} into one of the 16 Davis-Leinhardt
+# M-A-N classes (1-based index into the standard census order).
+function ref_triad_type(net, a::Int, b::Int, c::Int)
+    mutual = 0
+    asym_arcs = Tuple{Int,Int}[]
+    mutual_pair = (0, 0)
+
+    for (i, j) in ((a, b), (a, c), (b, c))
+        y_ij = has_edge(net, i, j)
+        y_ji = has_edge(net, j, i)
+        if y_ij && y_ji
+            mutual += 1
+            mutual_pair = (i, j)
+        elseif y_ij
+            push!(asym_arcs, (i, j))
+        elseif y_ji
+            push!(asym_arcs, (j, i))
+        end
+    end
+
+    A = length(asym_arcs)
+
+    if mutual == 3
+        return 16                     # 300
+    elseif mutual == 2
+        return A == 1 ? 15 : 11       # 210 : 201
+    elseif mutual == 1
+        if A == 0
+            return 3                  # 102
+        elseif A == 1
+            s, d = asym_arcs[1]
+            return (d == mutual_pair[1] || d == mutual_pair[2]) ? 7 : 8
+        else  # A == 2
+            s1, d1 = asym_arcs[1]
+            s2, d2 = asym_arcs[2]
+            s1 == s2 && return 12     # 120D (common source)
+            d1 == d2 && return 13     # 120U (common sink)
+            return 14                 # 120C (chain)
+        end
+    else  # mutual == 0
+        if A == 0
+            return 1                  # 003
+        elseif A == 1
+            return 2                  # 012
+        elseif A == 2
+            s1, d1 = asym_arcs[1]
+            s2, d2 = asym_arcs[2]
+            s1 == s2 && return 4      # 021D (out-star)
+            d1 == d2 && return 5      # 021U (in-star)
+            return 6                  # 021C (path)
+        else  # A == 3
+            sources = (asym_arcs[1][1], asym_arcs[2][1], asym_arcs[3][1])
+            return allunique(sources) ? 10 : 9   # 030C : 030T
+        end
+    end
+end
+
+# Graph correlation over off-diagonal dyads (R sna::gcor), used as the
+# qaptest statistic
+function gcor(a::AbstractMatrix, b::AbstractMatrix)
+    n = size(a, 1)
+    av = Float64[a[i, j] for i in 1:n, j in 1:n if i != j]
+    bv = Float64[b[i, j] for i in 1:n, j in 1:n if i != j]
+    return cor(av, bv)
+end
+
+# Padgett Florentine wealth (florentine_vertices.tsv), for netlm/netlogit
+# dyadic covariates
+const FLO_WEALTH = Float64[10, 36, 55, 44, 20, 32, 8, 42, 103, 48, 49, 3,
+                           27, 10, 146, 48]
 
 @testset "SNA.jl" begin
     @testset "Degree Centrality" begin
@@ -146,6 +242,44 @@ end
         @test Set(core_2) == Set([1, 2, 3])  # Triangle has core number 2
     end
 
+    @testset "Local clustering (undirected, single-counted degrees)" begin
+        # Triangle 1-2-3 with pendant 4 attached to 3. R sna / igraph local
+        # clustering: [1, 1, 1/3, 0]; the symmetric digraph storage must not
+        # inflate the k(k-1) denominator.
+        net = network(4; directed=false)
+        add_edge!(net, 1, 2)
+        add_edge!(net, 1, 3)
+        add_edge!(net, 2, 3)
+        add_edge!(net, 3, 4)
+
+        lc = transitivity(net; type=:local)
+        @test lc ≈ [1.0, 1.0, 1 / 3, 0.0] atol = 1e-12
+        @test transitivity(net; type=:average) ≈ 7 / 12 atol = 1e-12
+    end
+
+    @testset "Cliques" begin
+        # Triangle 1-2-3 plus path 3-4-5: one maximal clique of size >= 3
+        net = network(5; directed=false)
+        add_edge!(net, 1, 2)
+        add_edge!(net, 1, 3)
+        add_edge!(net, 2, 3)
+        add_edge!(net, 3, 4)
+        add_edge!(net, 4, 5)
+
+        cl = cliques(net)
+        @test Set.(cl) == [Set([1, 2, 3])]
+        @test Set(Set.(cliques(net; min_size=2))) ==
+              Set([Set([1, 2, 3]), Set([3, 4]), Set([4, 5])])
+
+        # Directed networks are symmetrized with the weak rule, as in
+        # R sna::clique.census: a one-way arc suffices for an undirected tie
+        dnet = network(3)
+        add_edge!(dnet, 1, 2)
+        add_edge!(dnet, 2, 3)
+        add_edge!(dnet, 3, 1)
+        @test Set.(cliques(dnet)) == [Set([1, 2, 3])]
+    end
+
     @testset "Golden master vs R sna (samplike, directed)" begin
         samp = sampson_like()
 
@@ -211,9 +345,57 @@ end
 
         @test Set(kcores(flo; k=2)) == Set([2, 3, 4, 5, 7, 9, 11, 13, 15, 16])
 
+        # sna::degree(flo, gmode="graph"): undirected degree is single-counted
+        @test degree_centrality(flo) == [1.0, 3.0, 2.0, 3.0, 3.0, 1.0, 4.0, 1.0,
+                                         6.0, 1.0, 3.0, 0.0, 3.0, 2.0, 4.0, 3.0]
+        @test degree_centrality(flo)[9] == 6.0  # Medici
+        @test degree_centrality(flo; normalized=true)[9] ≈ 6 / 15 atol = 1e-12
+        # mode is ignored for undirected networks (in = out = total degree)
+        @test degree_centrality(flo; mode=:in) == degree_centrality(flo)
+
+        # The three maximal cliques of size >= 3 (sna::clique.census)
+        @test Set(Set.(cliques(flo))) ==
+              Set([Set([4, 11, 15]), Set([5, 11, 15]), Set([9, 13, 16])])
+
         fb = flowbet(flo)
         @test fb[9] ≈ 68.0 atol = 1e-9
         @test fb[7] ≈ 38.0 atol = 1e-9
+    end
+
+    @testset "Graphs.jl namespace integration" begin
+        # SNA extends the Graphs.jl generics instead of shadowing them, so
+        # `using SNA, Graphs` (as at the top of this file) must leave a
+        # single unambiguous binding for each shared name.
+        @test density === Graphs.density
+        @test diameter === Graphs.diameter
+        @test bridges === Graphs.bridges
+        @test degree_centrality === Graphs.degree_centrality
+        @test betweenness_centrality === Graphs.betweenness_centrality
+        @test closeness_centrality === Graphs.closeness_centrality
+        @test eigenvector_centrality === Graphs.eigenvector_centrality
+        @test katz_centrality === Graphs.katz_centrality
+        @test pagerank === Graphs.pagerank
+
+        # Undirected n=5 with 2 edges: density is 2/10 = 0.2 (not the
+        # doubled-storage 0.1)
+        net = network(5; directed=false)
+        add_edge!(net, 1, 2)
+        add_edge!(net, 3, 4)
+        @test density(net) ≈ 0.2 atol = 1e-12
+        @test Graphs.density(net) ≈ 0.2 atol = 1e-12
+
+        path = network(5; directed=false)
+        for i in 1:4
+            add_edge!(path, i, i + 1)
+        end
+        @test diameter(path) == 4.0
+        @test length(bridges(path)) == 4
+        @test degree_centrality(path) == [1.0, 2.0, 2.0, 2.0, 1.0]
+
+        # The generics still work on plain Graphs.jl graphs
+        g = Graphs.path_graph(5)
+        @test density(g) ≈ 0.4 atol = 1e-12
+        @test diameter(g) == 4
     end
 
     @testset "Triad census brute-force invariants" begin
@@ -228,6 +410,218 @@ end
         m_from_tc = tc[3] + tc[7] + tc[8] + 2 * tc[11] + tc[12] + tc[13] +
                     tc[14] + 2 * tc[15] + 3 * tc[16]
         @test m_from_tc == dc.mutual * (n - 2)
+    end
+
+    @testset "Triad census: Batagelj-Mrvar vs brute force" begin
+        # Exact agreement with the O(n^3) reference on random directed and
+        # undirected graphs across densities (including empty and complete)
+        rng = Xoshiro(2024)
+        for trial in 1:8
+            n = rand(rng, 3:40)
+            p = rand(rng, (0.0, 0.02, 0.1, 0.3, 0.7, 1.0))
+            dnet = rgnp(n, p; directed=true, rng=rng)
+            @test triad_census(dnet) == ref_triad_census(dnet)
+            unet = rgnp(n, p; directed=false, rng=rng)
+            @test triad_census(unet) == ref_triad_census(unet)
+        end
+
+        # Tiny-network edge cases
+        for n in (1, 2), directed in (true, false)
+            tiny = network(n; directed=directed)
+            n == 2 && add_edge!(tiny, 1, 2)
+            @test triad_census(tiny) == ref_triad_census(tiny)
+            @test sum(triad_census(tiny)) == 0
+        end
+
+        # Golden master vs R sna::triad.census: fixed directed fixture
+        # (n = 7, set.seed(42) rgraph(7, tprob=0.35) in R sna 2.8)
+        fix = network(7; directed=true)
+        for (i, j) in [(1, 3), (1, 4), (1, 7), (2, 5), (3, 1), (3, 2),
+                       (3, 5), (3, 6), (3, 7), (4, 1), (4, 3), (4, 6),
+                       (5, 1), (5, 2), (6, 3), (6, 5), (6, 7), (7, 1),
+                       (7, 2), (7, 3), (7, 6)]
+            add_edge!(fix, i, j)
+        end
+        # sna order: 003 012 102 021D 021U 021C 111D 111U 030T 030C
+        #            201 120D 120U 120C 210 300
+        @test triad_census(fix) == [2, 2, 2, 0, 0, 4, 6, 8, 0, 0,
+                                    3, 2, 2, 1, 1, 2]
+    end
+
+    @testset "Centralization golden master vs R sna" begin
+        flo = florentine()
+        samp = sampson_like()
+
+        # R sna::centralization(flo, FUN, mode="graph")
+        @test centralization(flo, :degree) ≈ 0.2666666667 atol = 1e-9
+        @test centralization(flo, :betweenness) ≈ 0.3834920635 atol = 1e-9
+        # Pucci is an isolate: every Freeman closeness score is undefined
+        # (0 by sna convention), so the centralization is 0
+        @test centralization(flo, :closeness) ≈ 0.0 atol = 1e-12
+        @test centralization(flo, :eigenvector) ≈ 0.3416651990 atol = 1e-6
+
+        # R sna::centralization(samp, FUN) (mode="digraph")
+        @test centralization(samp, :degree) ≈ 0.2389705882 atol = 1e-9
+        @test centralization(samp, :degree; mode=:in) ≈ 0.3806228374 atol = 1e-9
+        @test centralization(samp, :degree; mode=:out) ≈ 0.0692041522 atol = 1e-9
+        @test centralization(samp, :betweenness) ≈ 0.2024623085 atol = 1e-9
+        @test centralization(samp, :closeness) ≈ 0.0919022955 atol = 1e-9
+        @test centralization(samp, :eigenvector) ≈ 0.0700638198 atol = 1e-6
+
+        # normalize=FALSE returns the raw deviation sum
+        @test centralization(flo, :degree; normalized=false) ≈ 56.0 atol = 1e-9
+        @test centralization(samp, :degree; normalized=false) ≈ 130.0 atol = 1e-9
+
+        # Star graph is maximally degree-centralized
+        star = network(6; directed=false)
+        for v in 2:6
+            add_edge!(star, 1, v)
+        end
+        @test centralization(star, :degree) ≈ 1.0 atol = 1e-12
+        @test centralization(star, :betweenness) ≈ 1.0 atol = 1e-12
+        @test centralization(star, :closeness) ≈ 1.0 atol = 1e-12
+
+        @test_throws ArgumentError centralization(flo, :pagerank)
+    end
+
+    @testset "QAP test (qaptest)" begin
+        flo = florentine()
+        biz = load_dataset(:florentine_business)
+
+        qt = qaptest(gcor, flo, biz; reps=1000, rng=Xoshiro(11))
+        # Observed statistic is deterministic: R sna::gcor(flo, biz)
+        @test qt.testval ≈ 0.3718678721 atol = 1e-9
+        @test qt isa QAPTestResult
+        @test length(qt.dist) == 1000
+        @test qt.reps == 1000
+        # Marriage and business ties are strongly associated: the QAP
+        # p-value is far in the upper tail (R reference: pgreq ~ 0.001)
+        @test qt.pgreq <= 0.01
+        @test qt.pleeq >= 0.99
+        @test qt.pgreq == count(>=(qt.testval), qt.dist) / qt.reps
+
+        # Matrices are accepted directly, and f sees permuted matrices
+        qm = qaptest(gcor, as_matrix(flo), as_matrix(biz); reps=100,
+                     rng=Xoshiro(1))
+        @test qm.testval ≈ qt.testval atol = 1e-12
+
+        # A self-comparison is at the very top of its null distribution
+        qs = qaptest(gcor, flo, flo; reps=100, rng=Xoshiro(2))
+        @test qs.testval ≈ 1.0 atol = 1e-12
+        @test qs.pgreq <= 0.05
+
+        @test occursin("QAP Test", sprint(show, qt))
+        @test_throws ArgumentError qaptest(gcor, flo, network(5; directed=false))
+    end
+
+    @testset "Network regression (netlm)" begin
+        flo = florentine()
+        biz = load_dataset(:florentine_business)
+        wdiff = abs.(FLO_WEALTH .- FLO_WEALTH')
+
+        # Golden master vs R sna::netlm(flo, list(biz, wdiff), mode="graph",
+        # nullhyp="classical"): undirected dyads, diagonal excluded
+        fit = netlm(flo, [biz, wdiff]; nullhyp=:classical)
+        @test fit isa NetLMResult
+        @test fit.n == 120
+        @test fit.df_residual == 117
+        @test !fit.directed
+        @test fit.names == ["(intercept)", "x1", "x2"]
+        @test fit.coefficients ≈ [0.0115567910, 0.4292240761, 0.0026646583] atol = 1e-9
+        @test fit.tstat ≈ [0.2469658004, 4.6124554994, 3.0852487650] atol = 1e-9
+        @test fit.pgreqabs ≈ [0.8053675128, 1.0246842090e-5, 0.0025385758] atol = 1e-9
+        @test fit.r_squared ≈ 0.2031176130 atol = 1e-9
+        @test fit.dist === nothing
+
+        # Directed golden master: samplike on its transpose
+        # (R: netlm(samp, t(samp), nullhyp="classical"))
+        samp = sampson_like()
+        fit_d = netlm(samp, [Matrix(as_matrix(samp)')]; nullhyp=:classical)
+        @test fit_d.n == 306
+        @test fit_d.directed
+        @test fit_d.coefficients ≈ [0.1467889908, 0.4895746455] atol = 1e-9
+        @test fit_d.tstat ≈ [5.4733396394, 9.7894536551] atol = 1e-9
+
+        # Dekker double-semi-partialing QAP (the default): identical point
+        # estimates, permutation p-values (R reference with reps=2000:
+        # pgreqabs ~ [0.80, 0.000, 0.0015])
+        fq = netlm(flo, [biz, wdiff]; reps=500, rng=Xoshiro(7))
+        @test fq.nullhyp == :qapspp
+        @test fq.coefficients ≈ fit.coefficients atol = 1e-12
+        @test fq.tstat ≈ fit.tstat atol = 1e-12
+        @test size(fq.dist) == (500, 3)
+        @test fq.pgreqabs[1] > 0.5      # intercept: no effect
+        @test fq.pgreqabs[2] <= 0.01    # business ties: strong effect
+        @test fq.pgreqabs[3] <= 0.05    # wealth difference: real effect
+        @test all(0 .<= fq.pleeq .<= 1) && all(0 .<= fq.pgreq .<= 1)
+
+        # Classical y-permutation QAP (R reference: ~ [1, 0.000, 0.0055])
+        fy = netlm(flo, [biz, wdiff]; nullhyp=:qapy, reps=500, rng=Xoshiro(7))
+        @test fy.nullhyp == :qapy
+        @test fy.pgreqabs[2] <= 0.01
+        @test fy.pgreqabs[3] <= 0.05
+
+        # x-permutation QAP runs and keeps the same point estimates
+        fx = netlm(flo, [biz, wdiff]; nullhyp=:qapx, reps=100, rng=Xoshiro(7))
+        @test fx.nullhyp == :qapx
+        @test fx.coefficients ≈ fit.coefficients atol = 1e-12
+
+        # With a single regressor, semi-partialing degenerates to :qapy
+        # (as in sna); a single predictor without intercept has nx == 1
+        f1 = netlm(flo, biz; intercept=false, reps=100, rng=Xoshiro(1))
+        @test f1.nullhyp == :qapy
+        @test length(f1.coefficients) == 1
+
+        # A single-network (non-vector) predictor is accepted
+        f2 = netlm(flo, biz; nullhyp=:classical)
+        @test f2.names == ["(intercept)", "x1"]
+
+        # Raw matrices default to directed dyads; mode=:graph overrides
+        fm = netlm(as_matrix(flo), [as_matrix(biz)]; nullhyp=:classical)
+        @test fm.directed && fm.n == 240
+        fg = netlm(as_matrix(flo), [as_matrix(biz)]; nullhyp=:classical,
+                   mode=:graph)
+        @test !fg.directed && fg.n == 120
+        @test fg.coefficients ≈ f2.coefficients atol = 1e-12
+
+        @test occursin("R-squared", sprint(show, fq))
+        @test_throws ArgumentError netlm(flo, [network(5; directed=false)])
+        @test_throws ArgumentError netlm(flo, [biz]; nullhyp=:bogus)
+        @test_throws ArgumentError netlm(flo, [biz]; mode=:bogus)
+    end
+
+    @testset "Network logit (netlogit)" begin
+        flo = florentine()
+        biz = load_dataset(:florentine_business)
+        wdiff = abs.(FLO_WEALTH .- FLO_WEALTH')
+
+        # Golden master vs R sna::netlogit(flo, list(biz, wdiff),
+        # mode="graph", nullhyp="classical")
+        fit = netlogit(flo, [biz, wdiff]; nullhyp=:classical)
+        @test fit isa NetLogitResult
+        @test fit.n == 120
+        @test fit.df_residual == 117
+        @test fit.coefficients ≈ [-3.0417761907, 2.4966227608, 0.0199475777] atol = 1e-5
+        @test fit.se ≈ [0.5283397915, 0.6511320086, 0.0068658522] atol = 1e-5
+        @test fit.tstat ≈ [-5.7572347186, 3.8342804957, 2.9053316701] atol = 1e-4
+        @test fit.pgreqabs ≈ [7.0107518e-8, 2.0438801e-4, 4.3880907e-3] rtol = 1e-3
+        @test fit.deviance ≈ 86.9618703491 atol = 1e-6
+        @test fit.null_deviance ≈ 166.3553233344 atol = 1e-6
+        @test fit.aic ≈ 92.9618703491 atol = 1e-6
+        @test fit.bic ≈ 101.3243455775 atol = 1e-6
+
+        # DSP QAP p-values (R reference with reps=1000: ~ [0, 0, 0.001])
+        fq = netlogit(flo, [biz, wdiff]; reps=200, rng=Xoshiro(7))
+        @test fq.nullhyp == :qapspp
+        @test fq.coefficients ≈ fit.coefficients atol = 1e-8
+        @test fq.pgreqabs[2] <= 0.05
+        @test fq.pgreqabs[3] <= 0.05
+        @test size(fq.dist) == (200, 3)
+
+        @test occursin("deviance", sprint(show, fq))
+
+        # The DV must be dichotomous
+        @test_throws ArgumentError netlogit(wdiff, [as_matrix(biz)])
     end
 
     @testset "Random network generators" begin

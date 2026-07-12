@@ -46,7 +46,7 @@ All modules are included and all public functions exported from the top-level `s
 
 - Functions follow R `sna` naming where possible (e.g., `gden`, `grecip`, `gtrans` as aliases)
 - Measures follow R `sna` conventions exactly where a counterpart exists; golden-master values from sna 2.8 (Sampson samplike, Padgett flomarriage) are baked into the tests
-- Directed networks are the default; undirected networks are created with `Network(n; directed=false)`
+- Directed networks are the default; undirected networks are created with `network(n; directed=false)`
 - Centrality functions return `Vector{Float64}`; equivalence functions return `Matrix{Float64}`
 - Tests are in a single file `test/runtests.jl` using nested `@testset` blocks
 - Documentation uses Documenter.jl with source pages in `docs/src/`

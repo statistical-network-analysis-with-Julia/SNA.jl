@@ -9,9 +9,12 @@ transitivity, and census functions.
     density(net) -> Float64
 
 Compute network density (proportion of possible edges that exist).
-Alias for network_density from Network.jl.
+Alias for network_density from Network.jl. Undirected edges are
+single-counted, so an undirected network has `ne(net) / (n(n-1)/2)`.
+
+Extends `Graphs.density` for `AbstractNetwork` types.
 """
-density(net) = network_density(net)
+density(net::AbstractNetwork) = network_density(net)
 
 """
     gden(net) -> Float64
@@ -102,12 +105,20 @@ function transitivity(net; type::Symbol=:global)
         end
         return potential > 0 ? realized / potential : 1.0
     elseif type == :local
-        return Graphs.local_clustering_coefficient(net.graph)
+        return Graphs.local_clustering_coefficient(_clustering_graph(net))
     else  # :average
-        local_cc = Graphs.local_clustering_coefficient(net.graph)
+        local_cc = Graphs.local_clustering_coefficient(_clustering_graph(net))
         valid = filter(!isnan, local_cc)
         return isempty(valid) ? 0.0 : mean(valid)
     end
+end
+
+# Undirected networks are stored as symmetric digraphs; convert to a
+# SimpleGraph so local clustering sees single-counted degrees (otherwise
+# the k(k-1) denominator is inflated ~4x).
+function _clustering_graph(net)
+    g = net.graph
+    return is_directed(net) ? g : Graphs.SimpleGraph(g)
 end
 
 """
@@ -166,87 +177,120 @@ order used by R `sna::triad.census`:
 
 For undirected networks, returns the 4-element census by triad edge count
 (0, 1, 2, 3 edges).
+
+Uses the edge-driven Batagelj–Mrvar (2001) algorithm: only triads containing
+at least one tie are enumerated (each exactly once, from its lowest-labeled
+connected pair), so the cost is `O(Σ_(u,v)∈E (deg(u)+deg(v)))` rather than
+`O(n³)`; the empty-triad count is recovered by subtraction from `C(n,3)`.
 """
 function triad_census(net)
+    is_directed(net) || return _triad_census_undirected(net)
+
     n = nv(net)
-
-    if !is_directed(net)
-        census = zeros(Int, 4)
-        for i in 1:n, j in (i+1):n, k in (j+1):n
-            m = (has_edge(net, i, j) ? 1 : 0) +
-                (has_edge(net, i, k) ? 1 : 0) +
-                (has_edge(net, j, k) ? 1 : 0)
-            census[m+1] += 1
-        end
-        return census
-    end
-
     census = zeros(Int, 16)
-    for i in 1:n, j in (i+1):n, k in (j+1):n
-        census[_triad_type(net, i, j, k)] += 1
+    nbrs = [_union_neighborhood(net, v) for v in 1:n]
+    buf = Int[]
+
+    for v in 1:n
+        for u in nbrs[v]
+            u > v || continue
+            # Third vertices attached to the dyad {v, u}
+            _sorted_union!(buf, nbrs[v], nbrs[u], v, u)
+            # Triads whose third vertex is attached to neither v nor u have
+            # (v,u) as their only non-null dyad: 102 if mutual, 012 if asym
+            dyad = (has_edge(net, v, u) && has_edge(net, u, v)) ? 3 : 2
+            census[dyad] += n - length(buf) - 2
+            for w in buf
+                # Count each connected triad exactly once: from the edge to
+                # its lowest-labeled attached pair
+                if u < w || (v < w && w < u && !insorted(w, nbrs[v]))
+                    census[_TRICODE_CLASS[_tricode(net, v, u, w)+1]] += 1
+                end
+            end
+        end
     end
+
+    census[1] = binomial(n, 3) - sum(@view census[2:16])
     return census
 end
 
-# Classify the directed triad {a, b, c} into one of the 16 Davis–Leinhardt
-# M-A-N classes (1-based index into the standard census order).
-function _triad_type(net, a::Int, b::Int, c::Int)
-    # Dyad states and the set of asymmetric arcs
-    mutual = 0
-    asym_arcs = Tuple{Int,Int}[]
-    mutual_pair = (0, 0)
+# Map from the 6-bit dyad code of a triad (v,u,w) to its 1-based position in
+# the Davis–Leinhardt census order (Batagelj & Mrvar 2001, Table 1)
+const _TRICODE_CLASS = (
+    1, 2, 2, 3, 2, 4, 6, 8, 2, 6, 5, 7, 3, 8, 7, 11,
+    2, 6, 4, 8, 5, 9, 9, 13, 6, 10, 9, 14, 7, 14, 12, 15,
+    2, 5, 6, 7, 6, 9, 10, 14, 4, 9, 9, 12, 8, 13, 14, 15,
+    3, 7, 8, 11, 7, 12, 14, 15, 8, 14, 13, 15, 11, 15, 15, 16)
 
-    for (i, j) in ((a, b), (a, c), (b, c))
-        y_ij = has_edge(net, i, j)
-        y_ji = has_edge(net, j, i)
-        if y_ij && y_ji
-            mutual += 1
-            mutual_pair = (i, j)
-        elseif y_ij
-            push!(asym_arcs, (i, j))
-        elseif y_ji
-            push!(asym_arcs, (j, i))
+# 6-bit arc code of the triad (v, u, w)
+function _tricode(net, v::Int, u::Int, w::Int)
+    code = 0
+    has_edge(net, v, u) && (code += 1)
+    has_edge(net, u, v) && (code += 2)
+    has_edge(net, v, w) && (code += 4)
+    has_edge(net, w, v) && (code += 8)
+    has_edge(net, u, w) && (code += 16)
+    has_edge(net, w, u) && (code += 32)
+    return code
+end
+
+# Sorted union of in- and out-neighbors of v, excluding v itself
+function _union_neighborhood(net, v::Int)
+    if !is_directed(net)
+        # Undirected storage is a symmetric digraph: out-neighbors suffice
+        return Int[w for w in outneighbors(net, v) if w != v]
+    end
+    return _sorted_union!(Int[], inneighbors(net, v), outneighbors(net, v),
+                          v, v)
+end
+
+# Merge two sorted vectors into `buf` (deduplicated), skipping two vertices
+function _sorted_union!(buf::Vector{Int}, a::AbstractVector{<:Integer},
+                        b::AbstractVector{<:Integer}, skip1::Int, skip2::Int)
+    empty!(buf)
+    i, j = 1, 1
+    na, nb = length(a), length(b)
+    while i <= na || j <= nb
+        w = if i > na
+            x = b[j]; j += 1; x
+        elseif j > nb
+            x = a[i]; i += 1; x
+        elseif a[i] < b[j]
+            x = a[i]; i += 1; x
+        elseif a[i] > b[j]
+            x = b[j]; j += 1; x
+        else
+            x = a[i]; i += 1; j += 1; x
+        end
+        (w == skip1 || w == skip2) || push!(buf, w)
+    end
+    return buf
+end
+
+# Edge-driven undirected census by triad edge count (0, 1, 2, 3)
+function _triad_census_undirected(net)
+    n = nv(net)
+    census = zeros(Int, 4)
+    nbrs = [_union_neighborhood(net, v) for v in 1:n]
+    buf = Int[]
+
+    for v in 1:n
+        for u in nbrs[v]
+            u > v || continue
+            _sorted_union!(buf, nbrs[v], nbrs[u], v, u)
+            census[2] += n - length(buf) - 2
+            for w in buf
+                if u < w || (v < w && w < u && !insorted(w, nbrs[v]))
+                    m = 1 + (insorted(w, nbrs[v]) ? 1 : 0) +
+                        (insorted(w, nbrs[u]) ? 1 : 0)
+                    census[m+1] += 1
+                end
+            end
         end
     end
 
-    A = length(asym_arcs)
-
-    if mutual == 3
-        return 16                     # 300
-    elseif mutual == 2
-        return A == 1 ? 15 : 11       # 210 : 201
-    elseif mutual == 1
-        if A == 0
-            return 3                  # 102
-        elseif A == 1
-            # 111D: A<->B<-C (arc points into the mutual pair)
-            # 111U: A<->B->C (arc points out of the mutual pair)
-            s, d = asym_arcs[1]
-            return (d == mutual_pair[1] || d == mutual_pair[2]) ? 7 : 8
-        else  # A == 2
-            s1, d1 = asym_arcs[1]
-            s2, d2 = asym_arcs[2]
-            s1 == s2 && return 12     # 120D (common source)
-            d1 == d2 && return 13     # 120U (common sink)
-            return 14                 # 120C (chain)
-        end
-    else  # mutual == 0
-        if A == 0
-            return 1                  # 003
-        elseif A == 1
-            return 2                  # 012
-        elseif A == 2
-            s1, d1 = asym_arcs[1]
-            s2, d2 = asym_arcs[2]
-            s1 == s2 && return 4      # 021D (out-star)
-            d1 == d2 && return 5      # 021U (in-star)
-            return 6                  # 021C (path)
-        else  # A == 3
-            # Cyclic if every vertex has out-degree 1 among the arcs
-            sources = (asym_arcs[1][1], asym_arcs[2][1], asym_arcs[3][1])
-            return allunique(sources) ? 10 : 9   # 030C : 030T
-        end
-    end
+    census[1] = binomial(n, 3) - census[2] - census[3] - census[4]
+    return census
 end
 
 """

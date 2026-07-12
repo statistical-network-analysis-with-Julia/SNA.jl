@@ -79,7 +79,7 @@ SNA.jl depends on [Network.jl](https://github.com/Statistical-network-analysis-w
 using Network, SNA
 
 # Create a small directed network
-net = Network(5; directed=true)
+net = network(5; directed=true)
 add_edge!(net, 1, 2)
 add_edge!(net, 1, 3)
 add_edge!(net, 2, 3)

@@ -10,7 +10,7 @@ Throughout this guide, we use a network with clear subgroup structure:
 using Network, SNA
 
 # Network with two dense groups connected by a bridge
-net = Network(8; directed=false)
+net = network(8; directed=false)
 
 # Group 1: vertices 1-4 (nearly complete)
 add_edge!(net, 1, 2); add_edge!(net, 1, 3)
@@ -47,7 +47,7 @@ println("Component sizes: ", [length(c) for c in comps])
 println("Component members: ", comps)
 
 # For directed networks: strongly connected components
-net_dir = Network(5; directed=true)
+net_dir = network(5; directed=true)
 add_edge!(net_dir, 1, 2); add_edge!(net_dir, 2, 3)
 add_edge!(net_dir, 3, 1); add_edge!(net_dir, 3, 4)
 add_edge!(net_dir, 4, 5)
@@ -369,7 +369,7 @@ A comprehensive cohesion analysis uses multiple measures together:
 ```julia
 using Network, SNA
 
-net = Network(10; directed=false)
+net = network(10; directed=false)
 # Create a network with interesting structure
 add_edge!(net, 1, 2); add_edge!(net, 1, 3); add_edge!(net, 2, 3)
 add_edge!(net, 3, 4); add_edge!(net, 4, 5); add_edge!(net, 4, 6)

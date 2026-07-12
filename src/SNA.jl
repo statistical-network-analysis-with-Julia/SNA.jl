@@ -9,16 +9,35 @@ Port of the R sna package from the StatNet collection.
 """
 module SNA
 
+using Distributions
 using Graphs
 using LinearAlgebra
 using Random
 using Statistics
 using Network
 
+# Extend (rather than shadow) the Graphs.jl generics that share a name with
+# SNA functions, so that `using SNA, Graphs` never produces ambiguous
+# bindings. The methods below are defined on Network's AbstractNetwork types.
+import Graphs: density, diameter, bridges,
+    degree_centrality, betweenness_centrality, closeness_centrality,
+    eigenvector_centrality, katz_centrality, pagerank
+
+# Re-export the Network.jl public API so that `using SNA` alone provides the
+# network constructors and accessors, mirroring R's library(sna) working with
+# network objects out of the box. The `Network` name itself is skipped: inside
+# this module it is bound to the struct, and exporting it would collide with
+# the package module binding in downstream namespaces (a plain @reexport fails
+# for the same reason).
+for _network_export in names(parentmodule(Network))
+    _network_export === :Network && continue
+    Core.eval(@__MODULE__, Expr(:export, _network_export))
+end
+
 # Centrality measures
 export degree_centrality, betweenness_centrality, closeness_centrality
 export eigenvector_centrality, bonacich_power, katz_centrality
-export pagerank, flowbet
+export pagerank, flowbet, centralization
 
 # Network-level measures
 export density, reciprocity, transitivity, mutuality
@@ -44,6 +63,10 @@ export gden, grecip, gtrans
 export layout_fruchterman_reingold, layout_kamada_kawai
 export layout_circle, layout_random
 
+# QAP inference and network regression
+export qaptest, netlm, netlogit
+export QAPTestResult, NetLMResult, NetLogitResult
+
 # Random graphs
 export rgraph, rgnm, rgnp
 
@@ -54,5 +77,6 @@ include("cohesion/cohesion.jl")
 include("equivalence/equivalence.jl")
 include("random/random.jl")
 include("layout/layout.jl")
+include("qap/qap.jl")
 
 end # module

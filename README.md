@@ -3,7 +3,7 @@
 [![Network Analysis](https://img.shields.io/badge/Network-Analysis-orange.svg)](https://github.com/statistical-network-analysis-with-Julia/SNA.jl)
 [![Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://statistical-network-analysis-with-Julia.github.io/SNA.jl/stable/)
 [![Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://statistical-network-analysis-with-Julia.github.io/SNA.jl/dev/)
-[![Julia](https://img.shields.io/badge/Julia-1.9+-purple.svg)](https://julialang.org/)
+[![Julia](https://img.shields.io/badge/Julia-1.12+-purple.svg)](https://julialang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 <p align="center">
@@ -38,12 +38,14 @@ Vertex-level measures of structural importance.
 
 #### Degree-Based Centrality
 
+<!-- skip-check -->
 ```julia
 degree_centrality(net; mode=:total, normalized=false)  # In-degree, out-degree, or total
 ```
 
 #### Path-Based Centrality
 
+<!-- skip-check -->
 ```julia
 betweenness_centrality(net; normalized=true)   # Fraction of shortest paths through vertex
 closeness_centrality(net; normalized=true)      # Inverse average distance to all others
@@ -52,6 +54,7 @@ flowbet(net)                                    # Flow betweenness (all paths, n
 
 #### Spectral Centrality
 
+<!-- skip-check -->
 ```julia
 eigenvector_centrality(net; max_iter=100, tol=1e-6)  # Centrality weighted by neighbor centrality
 bonacich_power(net; β=0.5, normalized=true)           # Bonacich power (direct and indirect ties)
@@ -65,6 +68,7 @@ Global statistics characterising the network as a whole.
 
 #### Density and Reciprocity
 
+<!-- skip-check -->
 ```julia
 density(net)                          # Proportion of possible edges present
 reciprocity(net; method=:dyadic)      # Proportion of mutual ties (:dyadic or :edgewise)
@@ -75,6 +79,7 @@ grecip(net)                           # Alias for reciprocity (R sna compatibili
 
 #### Transitivity and Hierarchy
 
+<!-- skip-check -->
 ```julia
 transitivity(net; type=:global)       # Clustering coefficient (:global, :local, or :average)
 hierarchy(net)                        # Krackhardt's hierarchy (asymmetric reachability)
@@ -85,6 +90,7 @@ gtrans(net)                           # Alias for transitivity (R sna compatibil
 
 #### Census Functions
 
+<!-- skip-check -->
 ```julia
 dyad_census(net)                      # Counts of mutual, asymmetric, and null dyads
 triad_census(net)                     # 16-element vector of triad isomorphism classes
@@ -97,6 +103,7 @@ Functions for detecting substructures and assessing network vulnerability.
 
 #### Components
 
+<!-- skip-check -->
 ```julia
 components(net; mode=:weak)           # Connected components (:weak or :strong)
 largest_component(net; mode=:weak)    # Vertices in the largest component
@@ -105,6 +112,7 @@ bicomponents(net)                     # Biconnected components (no cutpoints)
 
 #### Subgroup Detection
 
+<!-- skip-check -->
 ```julia
 cliques(net; min_size=3)              # Maximal cliques of at least min_size
 kcores(net; k=1)                      # Vertices in the k-core
@@ -112,6 +120,7 @@ kcores(net; k=1)                      # Vertices in the k-core
 
 #### Vulnerability
 
+<!-- skip-check -->
 ```julia
 cutpoints(net)                        # Vertices whose removal disconnects the network
 bridges(net)                          # Edges whose removal disconnects the network
@@ -121,6 +130,7 @@ bridges(net)                          # Edges whose removal disconnects the netw
 
 Functions for computing distances and reachability.
 
+<!-- skip-check -->
 ```julia
 geodesic_distance(net)                # Matrix of shortest path distances (Inf if unreachable)
 diameter(net)                         # Longest shortest path
@@ -134,6 +144,7 @@ Functions for analysing positional similarity and building blockmodels.
 
 #### Equivalence Measures
 
+<!-- skip-check -->
 ```julia
 structural_equivalence(net; method=:correlation)  # Similarity matrix (:correlation, :euclidean, :hamming)
 regular_equivalence(net; max_iter=100, tol=1e-6)  # REGE algorithm for regular equivalence
@@ -141,6 +152,7 @@ regular_equivalence(net; max_iter=100, tol=1e-6)  # REGE algorithm for regular e
 
 #### Clustering and Blockmodeling
 
+<!-- skip-check -->
 ```julia
 equiv_clust(net; method=:structural, k=nothing)   # Cluster vertices by equivalence
 blockmodel(net; k=2, method=:structural)           # Block densities from equivalence clustering
@@ -149,6 +161,7 @@ consensus(clusterings)                              # Consensus from multiple cl
 
 ### 6. Random Graph Generators
 
+<!-- skip-check -->
 ```julia
 rgraph(10; tprob=0.1)                # Bernoulli random digraph (sna-style)
 rgnm(100, 200)                       # Erdős-Rényi G(n,m)
@@ -159,6 +172,7 @@ rgnp(100, 0.1)                       # Erdős-Rényi G(n,p)
 
 Functions for computing vertex positions for network visualisation.
 
+<!-- skip-check -->
 ```julia
 layout_fruchterman_reingold(net)      # Force-directed layout
 layout_kamada_kawai(net)              # Energy-based layout
@@ -175,7 +189,7 @@ using Network
 using SNA
 
 # Create a network
-net = Network(5)
+net = network(5)
 add_edge!(net, 1, 2)
 add_edge!(net, 1, 3)
 add_edge!(net, 2, 3)
@@ -197,7 +211,7 @@ t = transitivity(net)
 
 ```julia
 # Complete directed graph on 3 vertices
-net = Network(3)
+net = network(3)
 for (i, j) in [(1,2), (2,1), (1,3), (3,1), (2,3), (3,2)]
     add_edge!(net, i, j)
 end
@@ -210,7 +224,7 @@ tc = triad_census(net)      # 16-element vector of triad counts
 
 ```julia
 # Network with two components
-net = Network(6)
+net = network(6)
 add_edge!(net, 1, 2)
 add_edge!(net, 2, 3)
 add_edge!(net, 4, 5)
@@ -220,7 +234,7 @@ comps = components(net; mode=:weak)     # 2 components
 largest = largest_component(net)         # Vertices in the larger component
 
 # Undirected network for k-cores and cutpoints
-net = Network(5; directed=false)
+net = network(5; directed=false)
 add_edge!(net, 1, 2)
 add_edge!(net, 1, 3)
 add_edge!(net, 2, 3)
@@ -235,7 +249,7 @@ br = bridges(net)                       # Edges whose removal disconnects
 ### Structural Equivalence and Blockmodeling
 
 ```julia
-net = Network(4)
+net = network(4)
 add_edge!(net, 1, 3)
 add_edge!(net, 1, 4)
 add_edge!(net, 2, 3)
@@ -254,7 +268,7 @@ bm.block_matrix     # Density of ties between blocks
 ### Path Analysis
 
 ```julia
-net = Network(4)
+net = network(4)
 add_edge!(net, 1, 2)
 add_edge!(net, 2, 3)
 add_edge!(net, 3, 4)
@@ -269,6 +283,7 @@ average_path_length(net)    # Mean over reachable pairs
 
 ## Running Tests
 
+<!-- skip-check -->
 ```julia
 include("test/runtests.jl")
 ```

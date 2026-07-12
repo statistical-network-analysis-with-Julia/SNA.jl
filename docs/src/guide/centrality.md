@@ -6,6 +6,7 @@ Centrality measures quantify the importance or prominence of vertices in a netwo
 
 All centrality functions follow a common pattern:
 
+<!-- skip-check -->
 ```julia
 centrality_function(net; keyword_arguments...) -> Vector{Float64}
 ```
@@ -20,7 +21,7 @@ Throughout this guide, we use a small directed network to illustrate each measur
 using Network, SNA
 
 # Create example network
-net = Network(7; directed=true)
+net = network(7; directed=true)
 add_edge!(net, 1, 2); add_edge!(net, 1, 3)
 add_edge!(net, 2, 1); add_edge!(net, 2, 4)
 add_edge!(net, 3, 4); add_edge!(net, 3, 5)
@@ -207,14 +208,14 @@ Eigenvector centrality is appropriate when prestige or influence matters more th
 Bonacich power centrality extends eigenvector centrality with a tunable attenuation parameter $\beta$ that controls how much weight is given to indirect connections.
 
 ```julia
-# Default: beta=0.5
+# Default: exponent (β) = 1.0
 bp = bonacich_power(net)
 
 # Negative beta (power from connections to weak actors)
-bp_neg = bonacich_power(net; β=-0.3)
+bp_neg = bonacich_power(net; exponent=-0.3)
 
-# Unnormalized
-bp_raw = bonacich_power(net; normalized=false)
+# Rescaled so scores sum to 1 (as in R sna)
+bp_scaled = bonacich_power(net; rescale=true)
 ```
 
 ### Formula
@@ -227,8 +228,9 @@ Where $\beta$ is the attenuation parameter and must satisfy $|\beta| < 1/\lambda
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `β` | `Float64` | `0.5` | Attenuation factor |
-| `normalized` | `Bool` | `true` | Normalize by maximum absolute value |
+| `exponent` | `Float64` | `1.0` | Attenuation factor β; requires $|\beta| < 1/\lambda_1$ |
+| `rescale` | `Bool` | `false` | If true, rescale scores to sum to 1 |
+| `tol` | `Float64` | `1e-7` | Solver tolerance for detecting singularity |
 
 ### The Role of Beta
 
@@ -358,7 +360,7 @@ Different measures can produce very different rankings:
 ```julia
 using Network, SNA
 
-net = Network(7; directed=true)
+net = network(7; directed=true)
 add_edge!(net, 1, 2); add_edge!(net, 1, 3)
 add_edge!(net, 2, 1); add_edge!(net, 2, 4)
 add_edge!(net, 3, 4); add_edge!(net, 3, 5)

@@ -13,20 +13,30 @@ using LinearAlgebra
 
 Compute degree centrality for all vertices.
 
+For undirected networks each edge contributes 1 to the degree of its two
+endpoints (single-counted, matching R `sna::degree(gmode="graph")`); the
+`mode` argument is ignored since in-, out-, and total degree coincide.
+
 # Arguments
 - `net`: Network object
-- `mode::Symbol=:total`: Type of degree (:in, :out, or :total)
+- `mode::Symbol=:total`: Type of degree (:in, :out, or :total; directed only)
 - `normalized::Bool=false`: Normalize by maximum possible degree
 
 # Returns
 - Vector of centrality scores, one per vertex
 """
-function degree_centrality(net; mode::Symbol=:total, normalized::Bool=false)
+function degree_centrality(net::AbstractNetwork; mode::Symbol=:total,
+                           normalized::Bool=false)
     n = nv(net)
     centrality = zeros(Float64, n)
+    directed = is_directed(net)
 
     for v in vertices(net)
-        if mode == :in
+        if !directed
+            # Undirected edges are stored symmetrically in the backing
+            # digraph; count each neighbor once (sna gmode="graph")
+            centrality[v] = Float64(length(outneighbors(net, v)))
+        elseif mode == :in
             centrality[v] = Float64(length(inneighbors(net, v)))
         elseif mode == :out
             centrality[v] = Float64(length(outneighbors(net, v)))
@@ -36,9 +46,9 @@ function degree_centrality(net; mode::Symbol=:total, normalized::Bool=false)
     end
 
     if normalized && n > 1
-        # :in/:out can reach at most n-1; :total (Freeman degree) counts
-        # both directions, so its maximum is 2(n-1)
-        max_degree = mode == :total ? 2 * (n - 1) : (n - 1)
+        # :in/:out and undirected degree can reach at most n-1; directed
+        # :total (Freeman degree) counts both directions, max 2(n-1)
+        max_degree = (directed && mode == :total) ? 2 * (n - 1) : (n - 1)
         centrality ./= max_degree
     end
 
@@ -55,7 +65,7 @@ between other vertices. The default is the *raw* (unnormalized) score,
 matching R `sna::betweenness(rescale=FALSE)`; pass `normalized=true` for
 scores scaled to [0, 1].
 """
-function betweenness_centrality(net; normalized::Bool=false)
+function betweenness_centrality(net::AbstractNetwork; normalized::Bool=false)
     # Use Graphs.jl implementation
     bc = Graphs.betweenness_centrality(net.graph; normalize=normalized)
     # Graphs counts each undirected path once per direction on the
@@ -75,7 +85,7 @@ Freeman closeness used by R `sna::closeness` for connected graphs).
 Unreachable vertices are handled Graphs.jl-style (component-based scaling),
 which differs from `sna`'s default of treating the score as undefined.
 """
-function closeness_centrality(net; normalized::Bool=true)
+function closeness_centrality(net::AbstractNetwork; normalized::Bool=true)
     cc = Graphs.closeness_centrality(net.graph; normalize=normalized)
     return cc
 end
@@ -93,7 +103,8 @@ networks this weights vertices by the centrality of the vertices pointing
 want the undirected notion. Scores are reported with non-negative
 orientation and unit L2 norm.
 """
-function eigenvector_centrality(net; max_iter::Int=1000, tol::Float64=1e-10)
+function eigenvector_centrality(net::AbstractNetwork; max_iter::Int=1000,
+                                tol::Float64=1e-10)
     n = nv(net)
     A = as_matrix(net)
 
@@ -167,7 +178,7 @@ Compute Katz centrality.
 
 Similar to eigenvector centrality but with damping factor α.
 """
-function katz_centrality(net; α::Float64=0.1, β::Float64=1.0)
+function katz_centrality(net::AbstractNetwork; α::Float64=0.1, β::Float64=1.0)
     return Graphs.katz_centrality(net.graph, α)
 end
 
@@ -176,7 +187,8 @@ end
 
 Compute PageRank centrality.
 """
-function pagerank(net; α::Float64=0.85, max_iter::Int=100, tol::Float64=1e-6)
+function pagerank(net::AbstractNetwork; α::Float64=0.85, max_iter::Int=100,
+                  tol::Float64=1e-6)
     return Graphs.pagerank(net.graph, α, max_iter, tol)
 end
 
@@ -211,6 +223,97 @@ function flowbet(net)
     end
 
     return fb
+end
+
+"""
+    centralization(net, measure; mode=:total, normalized=true) -> Float64
+
+Compute Freeman graph centralization for a vertex centrality `measure`,
+following R `sna::centralization`:
+
+    C = Σᵢ (c_max − cᵢ) / C_max
+
+where `C_max` is the theoretical maximum deviation sum for a network of the
+same size (attained by the star for the classic measures). With
+`normalized=false` the raw deviation sum `Σᵢ (c_max − cᵢ)` is returned.
+
+# Arguments
+- `net`: Network object
+- `measure::Symbol`: Centrality measure to centralize
+    - `:degree`: [`degree_centrality`](@ref); `mode` selects `:in`, `:out`,
+      or `:total` (Freeman) degree for directed networks
+    - `:betweenness`: [`betweenness_centrality`](@ref) (raw scores)
+    - `:closeness`: Freeman closeness `(n-1)/Σⱼ d(i,j)`, with the score
+      taken as 0 when some vertex is unreachable (sna's convention — a
+      disconnected network has closeness centralization 0)
+    - `:eigenvector`: [`eigenvector_centrality`](@ref)
+- `mode::Symbol=:total`: Degree type for `measure == :degree` (ignored
+  otherwise, and for undirected networks)
+- `normalized::Bool=true`: Divide by the theoretical maximum (sna
+  `normalize=TRUE`)
+
+The theoretical maxima match `sna`'s `tmaxdev` values: e.g. `(n-1)(n-2)`
+for undirected degree, `(n-1)²(n-2)` / `(n-1)²(n-2)/2` for directed /
+undirected betweenness, `(n-1)(1-1/n)` / `(n-1)(n-2)/(2n-3)` for directed /
+undirected closeness, and `n-1` / `√2(n-2)/2` for directed / undirected
+eigenvector centrality.
+"""
+function centralization(net, measure::Symbol; mode::Symbol=:total,
+                        normalized::Bool=true)
+    n = nv(net)
+    directed = is_directed(net)
+
+    cv, tmax = if measure == :degree
+        tmax = if directed
+            mode == :total ? Float64((n - 1) * (2 * (n - 1) - 2)) :
+                             Float64((n - 1) * (n - 1))
+        else
+            Float64((n - 1) * (n - 2))
+        end
+        (degree_centrality(net; mode=mode), tmax)
+    elseif measure == :betweenness
+        tmax = directed ? Float64((n - 1)^2 * (n - 2)) :
+                          (n - 1)^2 * (n - 2) / 2
+        (betweenness_centrality(net), tmax)
+    elseif measure == :closeness
+        tmax = directed ? (n - 1) * (1 - 1 / n) :
+                          (n - 2) * (n - 1) / (2 * n - 3)
+        (_freeman_closeness(net), tmax)
+    elseif measure == :eigenvector
+        tmax = directed ? Float64(n - 1) : sqrt(2) / 2 * (n - 2)
+        (eigenvector_centrality(net), tmax)
+    else
+        throw(ArgumentError("Unknown centralization measure: $measure " *
+                            "(use :degree, :betweenness, :closeness, or " *
+                            ":eigenvector)"))
+    end
+
+    isempty(cv) && return 0.0
+    cent = sum(maximum(cv) .- cv)
+    if normalized
+        tmax > 0 || return 0.0
+        cent /= tmax
+    end
+    return cent
+end
+
+# Freeman closeness with sna's unreachability convention: (n-1) over the
+# total geodesic distance to all other vertices, 0 when any is unreachable
+# (this is what sna::closeness computes and what centralization expects;
+# closeness_centrality uses Graphs.jl's component-based scaling instead).
+function _freeman_closeness(net)
+    n = nv(net)
+    dist = geodesic_distance(net)
+    clo = zeros(n)
+    for i in 1:n
+        total = 0.0
+        for j in 1:n
+            i == j && continue
+            total += dist[i, j]
+        end
+        clo[i] = isfinite(total) && total > 0 ? (n - 1) / total : 0.0
+    end
+    return clo
 end
 
 # Edmonds–Karp max flow on a dense capacity matrix, optionally with one

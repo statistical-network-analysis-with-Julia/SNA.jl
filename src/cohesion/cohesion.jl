@@ -39,14 +39,21 @@ end
 """
     cliques(net; min_size=3) -> Vector{Vector{Int}}
 
-Find all cliques (complete subgraphs) of at least the specified size.
+Find all maximal cliques (complete subgraphs) of at least the specified size.
+
+Cliques are an undirected concept; as in R `sna::clique.census`, directed
+networks are symmetrized first (weak rule: an undirected tie exists if an
+arc exists in either direction).
 
 Note: Finding all cliques is NP-complete. This returns maximal cliques
 for large networks.
 """
 function cliques(net; min_size::Int=3)
-    # Use maximal cliques from Graphs.jl
-    all_cliques = Graphs.maximal_cliques(net.graph)
+    # The backing store is always a digraph (symmetric for undirected
+    # networks); maximal_cliques needs a SimpleGraph. For directed networks
+    # this symmetrizes with the weak (either-direction) rule, as sna does.
+    g = Graphs.SimpleGraph(net.graph)
+    all_cliques = Graphs.maximal_cliques(g)
     return filter(c -> length(c) >= min_size, all_cliques)
 end
 
@@ -88,8 +95,10 @@ end
 Find all bridges in the network.
 
 A bridge is an edge whose removal disconnects the network.
+
+Extends `Graphs.bridges` for `AbstractNetwork` types.
 """
-function bridges(net)
+function bridges(net::AbstractNetwork)
     g = Graphs.SimpleGraph(net.graph)
     bridge_edges = Graphs.bridges(g)
     return [(src(e), dst(e)) for e in bridge_edges]
@@ -139,8 +148,10 @@ end
 Compute the diameter of the network (longest shortest path).
 
 Returns Inf if the network is disconnected.
+
+Extends `Graphs.diameter` for `AbstractNetwork` types.
 """
-function diameter(net)
+function diameter(net::AbstractNetwork)
     dist = geodesic_distance(net)
     finite_dist = filter(isfinite, dist)
     return isempty(finite_dist) ? Inf : maximum(finite_dist)

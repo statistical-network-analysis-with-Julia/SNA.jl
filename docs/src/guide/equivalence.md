@@ -46,7 +46,7 @@ Throughout this guide, we use a network with clear positional structure:
 using Network, SNA
 
 # Manager-subordinate network
-net = Network(8; directed=true)
+net = network(8; directed=true)
 
 # Managers (1, 2): send to subordinates
 add_edge!(net, 1, 3); add_edge!(net, 1, 4)  # Manager 1 → Workers 3, 4
@@ -344,7 +344,7 @@ Consensus clustering is useful when:
 using Network, SNA
 
 # Create a network with role structure
-net = Network(10; directed=true)
+net = network(10; directed=true)
 
 # Two "senders" (1, 2): send to everyone in group A
 add_edge!(net, 1, 3); add_edge!(net, 1, 4); add_edge!(net, 1, 5)

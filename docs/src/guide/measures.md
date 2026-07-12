@@ -9,7 +9,7 @@ Throughout this guide, we use a small directed network:
 ```julia
 using Network, SNA
 
-net = Network(6; directed=true)
+net = network(6; directed=true)
 add_edge!(net, 1, 2); add_edge!(net, 2, 1)  # Mutual
 add_edge!(net, 1, 3)                          # Asymmetric
 add_edge!(net, 2, 3); add_edge!(net, 3, 2)   # Mutual
