@@ -207,6 +207,12 @@ tc = triad_census(net)
 println("Triad census (16 classes): ", tc)
 ```
 
+The census is computed with the edge-driven Batagelj–Mrvar (2001)
+algorithm: only triads containing at least one tie are enumerated (each
+exactly once), and the empty-triad count is recovered by subtraction from
+$\binom{n}{3}$. The cost therefore scales with the number of edges rather
+than $O(n^3)$, so large sparse networks are censused quickly.
+
 ### The 16 Triad Types (MAN Notation)
 
 | Index | Label | M-A-N | Description |

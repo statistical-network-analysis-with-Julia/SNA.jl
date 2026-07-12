@@ -8,10 +8,11 @@ Install SNA.jl from GitHub:
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/Statistical-network-analysis-with-Julia/SNA.jl")
+Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/Network.jl")
+Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/SNA.jl")
 ```
 
-SNA.jl depends on [Network.jl](https://github.com/Statistical-network-analysis-with-Julia/Network.jl), which provides the core network data structure. It will be installed automatically as a dependency.
+SNA.jl depends on [Network.jl](https://github.com/statistical-network-analysis-with-Julia/Network.jl), which provides the core network data structure. It will be installed automatically as a dependency.
 
 ## Basic Workflow
 

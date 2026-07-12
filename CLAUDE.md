@@ -27,14 +27,17 @@ There is no built-in test filter; to run a single `@testset`, comment out the ot
 
 ## Architecture
 
-The package is organized into four submodules, each in its own directory under `src/`:
+The package is organized into submodules, each in its own directory under `src/`:
 
 - **`centrality/centrality.jl`** — Vertex-level centrality measures (degree, betweenness, closeness, eigenvector, Bonacich power, Katz, PageRank, flow betweenness)
 - **`measures/measures.jl`** — Network-level statistics (density, reciprocity, transitivity, dyad/triad census, hierarchy, efficiency, connectedness)
 - **`cohesion/cohesion.jl`** — Substructure detection (components, cliques, k-cores, cutpoints, bridges, bicomponents)
 - **`equivalence/equivalence.jl`** — Position analysis (structural equivalence, regular equivalence, blockmodeling, consensus clustering)
+- **`qap/qap.jl`** — QAP inference (`qaptest`, `netlm`, `netlogit` with Dekker double-semi-partialing as the default null)
+- **`random/random.jl`** — Random graph generators (`rgraph`, `rgnm`, `rgnp`)
+- **`layout/layout.jl`** — Layout algorithms (Fruchterman-Reingold, Kamada-Kawai, circle, random)
 
-All modules are included and all public functions exported from the top-level `src/SNA.jl` module.
+All modules are included and all public functions exported from the top-level `src/SNA.jl` module. `centralization` (Freeman centralization with sna's `tmaxdev` maxima) lives in `centrality/centrality.jl`; `triad_census` uses the edge-driven Batagelj–Mrvar algorithm in `measures/measures.jl`.
 
 ## Key Dependencies
 

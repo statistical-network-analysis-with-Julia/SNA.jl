@@ -407,6 +407,31 @@ end
 | Who controls flow in the network? | Flow betweenness |
 | Who has high status? | Katz |
 
+## Graph Centralization
+
+Beyond vertex-level scores, Freeman centralization summarizes how
+concentrated a centrality measure is in a single number: 0 when every
+vertex scores equally, 1 (for the classic measures) when the network is a
+perfect star. `centralization` follows R `sna::centralization`, computing
+$C = \sum_i (c_{max} - c_i) / C_{max}$ with sna's theoretical maxima:
+
+```julia
+using Network, SNA
+
+star = network(5; directed=false)
+for v in 2:5
+    add_edge!(star, 1, v)
+end
+
+println(centralization(star, :degree))       # 1.0 — the star is maximal
+println(centralization(star, :betweenness))  # 1.0
+println(centralization(star, :closeness))    # 1.0
+```
+
+Supported measures are `:degree` (with `mode=:in/:out/:total` for directed
+networks), `:betweenness`, `:closeness`, and `:eigenvector`; pass
+`normalized=false` for the raw deviation sum.
+
 ## Best Practices
 
 1. **Report multiple measures**: No single centrality measure captures all aspects of importance. Report at least two (e.g., degree and betweenness) to provide a more complete picture.

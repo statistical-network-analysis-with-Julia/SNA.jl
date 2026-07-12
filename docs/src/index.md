@@ -6,9 +6,9 @@ A Julia package providing descriptive analysis tools for social networks, includ
 
 ## Overview
 
-SNA.jl is a comprehensive toolkit for descriptive social network analysis. It provides functions for measuring the structural properties of networks at the vertex, dyad, triad, and whole-network levels. The package covers four core areas: centrality (who is important?), cohesion (how connected is the network?), network measures (what are the global properties?), and structural equivalence (which actors occupy similar positions?).
+SNA.jl is a comprehensive toolkit for descriptive social network analysis. It provides functions for measuring the structural properties of networks at the vertex, dyad, triad, and whole-network levels. The package covers five core areas: centrality (who is important?), cohesion (how connected is the network?), network measures (what are the global properties?), structural equivalence (which actors occupy similar positions?), and QAP inference (are two relations associated?).
 
-SNA.jl is a port of the R [sna](https://cran.r-project.org/package=sna) package from the [StatNet](https://statnet.org/) collection, adapted for Julia's multiple dispatch and type system. It builds on [Network.jl](https://github.com/Statistical-network-analysis-with-Julia/Network.jl), which provides the core network data structure implementing the Graphs.jl interface.
+SNA.jl is a port of the R [sna](https://cran.r-project.org/package=sna) package from the [StatNet](https://statnet.org/) collection, adapted for Julia's multiple dispatch and type system. It builds on [Network.jl](https://github.com/statistical-network-analysis-with-Julia/Network.jl), which provides the core network data structure implementing the Graphs.jl interface.
 
 ### What is Social Network Analysis?
 
@@ -49,19 +49,21 @@ SNA.jl supports a wide range of analytical tasks:
 
 ## Features
 
-- **8 centrality measures**: Degree, betweenness, closeness, eigenvector, Bonacich power, Katz, PageRank, and flow betweenness
-- **13 network-level indices**: Density, reciprocity, transitivity, mutuality, hierarchy, efficiency, connectedness, dyad census, triad census, and more
+- **8 centrality measures**: Degree, betweenness, closeness, eigenvector, Bonacich power, Katz, PageRank, and flow betweenness — plus Freeman graph [`centralization`](@ref) of any of them
+- **13 network-level indices**: Density, reciprocity, transitivity, mutuality, hierarchy, efficiency, connectedness, dyad census, triad census (edge-driven Batagelj–Mrvar algorithm), and more
 - **7 cohesion functions**: Components, cliques, k-cores, cutpoints, bridges, bicomponents, and largest component
 - **5 equivalence tools**: Structural equivalence, regular equivalence, blockmodeling, equivalence clustering, and consensus
 - **4 path functions**: Geodesic distance, reachability, diameter, and average path length
 - **4 layout algorithms**: Fruchterman-Reingold, Kamada-Kawai, circle, and random
 - **3 random graph generators**: Bernoulli (rgraph/rgnp), fixed edge count (rgnm)
+- **QAP inference**: [`qaptest`](@ref) for arbitrary graph-level statistics, and [`netlm`](@ref)/[`netlogit`](@ref) network regression with Dekker double-semi-partialing permutation tests
 
 ## Installation
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/Statistical-network-analysis-with-Julia/SNA.jl")
+Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/Network.jl")
+Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/SNA.jl")
 ```
 
 Or for development:
@@ -71,7 +73,7 @@ using Pkg
 Pkg.develop(path="/path/to/SNA.jl")
 ```
 
-SNA.jl depends on [Network.jl](https://github.com/Statistical-network-analysis-with-Julia/Network.jl), which will be installed automatically.
+SNA.jl depends on [Network.jl](https://github.com/statistical-network-analysis-with-Julia/Network.jl), which will be installed automatically.
 
 ## Quick Start
 
@@ -124,6 +126,8 @@ println("Mutual: $(dc_result.mutual), Asymmetric: $(dc_result.asymmetric), Null:
 | What subgroups exist? | [`components`](@ref), [`cliques`](@ref), [`kcores`](@ref) |
 | Who occupies similar roles? | [`structural_equivalence`](@ref), [`blockmodel`](@ref) |
 | What is the network diameter? | [`geodesic_distance`](@ref), [`diameter`](@ref) |
+| How centralized is the network? | [`centralization`](@ref) |
+| Are two relations associated? | [`qaptest`](@ref), [`netlm`](@ref), [`netlogit`](@ref) |
 
 ## Documentation
 

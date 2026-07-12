@@ -45,3 +45,14 @@ diameter
 average_path_length
 ```
 
+## QAP Inference and Network Regression
+
+Permutation tests and network regression following R `sna::qaptest`,
+`sna::netlm`, and `sna::netlogit`.
+
+```@docs
+qaptest
+netlm
+netlogit
+```
+

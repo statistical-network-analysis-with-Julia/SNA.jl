@@ -30,3 +30,12 @@ bonacich_power
 katz_centrality
 pagerank
 ```
+
+## Graph Centralization
+
+Freeman centralization of a vertex centrality measure, following R
+`sna::centralization`.
+
+```@docs
+centralization
+```

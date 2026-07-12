@@ -16,19 +16,29 @@ A Julia implementation of **Social Network Analysis** tools for descriptive anal
 
 SNA.jl provides a comprehensive suite of descriptive analysis tools for social networks, accounting for:
 
-- **Centrality**: Vertex-level importance measures including degree, betweenness, closeness, eigenvector, and PageRank
+- **Centrality**: Vertex-level importance measures including degree, betweenness, closeness, eigenvector, and PageRank, plus Freeman graph centralization
 - **Network measures**: Global statistics such as density, reciprocity, transitivity, and dyad/triad census
 - **Cohesion**: Substructure detection including components, cliques, k-cores, cutpoints, and bridges
 - **Equivalence**: Positional analysis including structural equivalence, regular equivalence, and blockmodeling
+- **QAP inference**: Permutation tests (`qaptest`) and network regression (`netlm`, `netlogit`) with Dekker double-semi-partialing
 
 SNA.jl is a port of the R [`sna`](https://cran.r-project.org/package=sna) package from the StatNet collection, providing efficient tools for analysing both directed and undirected networks.
 
 ## Installation
 
+Requires Julia 1.12+. SNA.jl depends on the unregistered
+[Network.jl](https://github.com/statistical-network-analysis-with-Julia/Network.jl) package, which must be added first:
+
 ```julia
 using Pkg
+Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/Network.jl")
 Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/SNA.jl")
 ```
+
+For development, you can instead clone all ecosystem repositories side by
+side (the monorepo layout) and start Julia with the root workspace project
+(`julia --project=.` in the clone root): the `[sources]` path dependencies
+then wire the packages together with no ordered installs needed.
 
 ## Functions Implemented
 
@@ -60,6 +70,15 @@ eigenvector_centrality(net; max_iter=100, tol=1e-6)  # Centrality weighted by ne
 bonacich_power(net; β=0.5, normalized=true)           # Bonacich power (direct and indirect ties)
 katz_centrality(net; α=0.1, β=1.0)                    # Katz centrality with damping factor
 pagerank(net; α=0.85, max_iter=100, tol=1e-6)         # Google PageRank
+```
+
+#### Graph Centralization
+
+<!-- skip-check -->
+```julia
+centralization(net, :degree; mode=:total)  # Freeman centralization of a centrality
+centralization(net, :betweenness)          # measure: :degree, :betweenness,
+centralization(net, :closeness)            # :closeness, or :eigenvector
 ```
 
 ### 2. Network-Level Measures
@@ -96,6 +115,11 @@ dyad_census(net)                      # Counts of mutual, asymmetric, and null d
 triad_census(net)                     # 16-element vector of triad isomorphism classes
 component_dist(net)                   # Distribution of component sizes
 ```
+
+`triad_census` uses the edge-driven Batagelj–Mrvar (2001) algorithm — only
+triads containing at least one tie are enumerated, so the cost scales with
+the number of edges rather than `O(n³)` and large sparse networks are
+censused quickly.
 
 ### 3. Cohesion Analysis
 
@@ -179,6 +203,25 @@ layout_kamada_kawai(net)              # Energy-based layout
 layout_circle(net)                    # Circular layout
 layout_random(net)                    # Random layout
 ```
+
+### 8. QAP Tests and Network Regression
+
+Permutation-based inference for dyadic data, following R `sna::qaptest`,
+`sna::netlm`, and `sna::netlogit`.
+
+<!-- skip-check -->
+```julia
+qaptest(f, g1, g2; reps=1000)         # QAP permutation test for any graph-level
+                                      # statistic f(A1, A2)
+netlm(y, xs; nullhyp=:qapspp)         # OLS network regression with QAP tests
+netlogit(y, xs; nullhyp=:qapspp)      # Logistic network regression with QAP tests
+```
+
+Both regressions default to Dekker's double-semi-partialing null
+(`:qapspp`, as in modern R `sna`), which is robust to multicollinearity
+among the predictors; `:qapy`, `:qapx`, and `:classical` are also
+available. All functions take `Network` objects or adjacency matrices and
+an `rng` keyword for reproducibility.
 
 ## Usage
 
@@ -281,7 +324,23 @@ diameter(net)               # 3.0
 average_path_length(net)    # Mean over reachable pairs
 ```
 
-## Running Tests
+### QAP Test and Network Regression
+
+```julia
+using Network, SNA, Statistics, Random
+
+flo = load_dataset(:florentine_marriage)
+biz = load_dataset(:florentine_business)
+
+# Are marriage and business ties associated? QAP test on graph correlation
+gcor(a, b) = cor(vec(a), vec(b))
+qt = qaptest(gcor, flo, biz; reps=1000, rng=Xoshiro(1))
+println(qt)          # observed correlation vs permutation distribution
+
+# Regress business ties on marriage ties (logistic, Dekker DSP null)
+fit = netlogit(biz, flo; reps=1000, rng=Xoshiro(2))
+println(fit)
+```
 
 <!-- skip-check -->
 ```julia
