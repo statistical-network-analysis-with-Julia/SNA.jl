@@ -4,7 +4,7 @@ Network = "027a387e-e55f-4537-a155-5037e5a23bdb"
 SNA = "199dfc94-006f-42e6-80fa-49ca4fc5f549"
 
 [sources]
-Network = {url = "https://github.com/statistical-network-analysis-with-Julia/Network.jl.git"}
+Network = {path = "../../Network.jl"}
 SNA = {path = ".."}
 
 [compat]
