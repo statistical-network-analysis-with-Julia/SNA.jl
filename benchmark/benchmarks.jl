@@ -12,7 +12,7 @@
 # per benchmark (consumed by the site repo's tools/run_benchmarks.jl).
 
 using BenchmarkTools
-using Network
+using Networks
 using Random
 using SNA
 

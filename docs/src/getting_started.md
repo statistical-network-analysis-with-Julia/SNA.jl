@@ -8,11 +8,11 @@ Install SNA.jl from GitHub:
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/Network.jl")
+Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/Networks.jl")
 Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/SNA.jl")
 ```
 
-SNA.jl depends on [Network.jl](https://github.com/statistical-network-analysis-with-Julia/Network.jl), which provides the core network data structure. It will be installed automatically as a dependency.
+SNA.jl depends on [Networks.jl](https://github.com/statistical-network-analysis-with-Julia/Networks.jl), which provides the core network data structure. It will be installed automatically as a dependency.
 
 ## Basic Workflow
 
@@ -25,10 +25,10 @@ The typical SNA.jl workflow consists of four steps:
 
 ## Step 1: Create a Network
 
-Networks are created using the `Network.jl` package:
+Networks are created using the `Networks.jl` package:
 
 ```julia
-using Network, SNA
+using Networks, SNA
 
 # Create a directed network with 6 vertices
 net = network(6; directed=true)
@@ -82,7 +82,7 @@ net_dense = rgraph(10; tprob=0.3)
 Centrality measures identify the most important actors in the network:
 
 ```julia
-using Network, SNA
+using Networks, SNA
 
 net = network(6; directed=true)
 add_edge!(net, 1, 2); add_edge!(net, 1, 3)
@@ -280,7 +280,7 @@ println("Consensus clustering: ", cons)
 ## Complete Example
 
 ```julia
-using Network, SNA
+using Networks, SNA
 
 # Build a small organizational communication network
 net = network(8; directed=true)

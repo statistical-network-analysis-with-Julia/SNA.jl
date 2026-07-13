@@ -7,7 +7,7 @@ Network-level measures summarize the overall structure of a network with single 
 Throughout this guide, we use a small directed network:
 
 ```julia
-using Network, SNA
+using Networks, SNA
 
 net = network(6; directed=true)
 add_edge!(net, 1, 2); add_edge!(net, 2, 1)  # Mutual

@@ -9,7 +9,7 @@ using Graphs
 using LinearAlgebra
 
 """
-    degree_centrality(net; mode=:total, normalized=false) -> Vector{Float64}
+    degree_centrality(net; mode=:total, normalized=false, missing=:error) -> Vector{Float64}
 
 Compute degree centrality for all vertices.
 
@@ -21,12 +21,17 @@ endpoints (single-counted, matching R `sna::degree(gmode="graph")`); the
 - `net`: Network object
 - `mode::Symbol=:total`: Type of degree (:in, :out, or :total; directed only)
 - `normalized::Bool=false`: Normalize by maximum possible degree
+- `missing::Symbol=:error`: Missing-dyad policy (`Networks.require_observed`);
+  `:error` rejects a network with masked (unobserved) dyads, `:face` counts
+  each masked dyad at its stored face value
 
 # Returns
 - Vector of centrality scores, one per vertex
 """
 function degree_centrality(net::AbstractNetwork; mode::Symbol=:total,
-                           normalized::Bool=false)
+                           normalized::Bool=false, missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="degree_centrality")
     n = nv(net)
     centrality = zeros(Float64, n)
     directed = is_directed(net)
@@ -56,7 +61,7 @@ function degree_centrality(net::AbstractNetwork; mode::Symbol=:total,
 end
 
 """
-    betweenness_centrality(net; normalized=false) -> Vector{Float64}
+    betweenness_centrality(net; normalized=false, missing=:error) -> Vector{Float64}
 
 Compute betweenness centrality for all vertices.
 
@@ -64,8 +69,15 @@ Betweenness centrality measures the extent to which a vertex lies on paths
 between other vertices. The default is the *raw* (unnormalized) score,
 matching R `sna::betweenness(rescale=FALSE)`; pass `normalized=true` for
 scores scaled to [0, 1].
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to build the paths from their stored face values
+(see `Networks.require_observed`).
 """
-function betweenness_centrality(net::AbstractNetwork; normalized::Bool=false)
+function betweenness_centrality(net::AbstractNetwork; normalized::Bool=false,
+                                missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="betweenness_centrality")
     # Use Graphs.jl implementation
     bc = Graphs.betweenness_centrality(net.graph; normalize=normalized)
     # Graphs counts each undirected path once per direction on the
@@ -77,21 +89,28 @@ function betweenness_centrality(net::AbstractNetwork; normalized::Bool=false)
 end
 
 """
-    closeness_centrality(net; normalized=true) -> Vector{Float64}
+    closeness_centrality(net; normalized=true, missing=:error) -> Vector{Float64}
 
 Compute closeness centrality for all vertices: `(n-1)` over the total
 geodesic distance to all other vertices (with `normalized=true`, the
 Freeman closeness used by R `sna::closeness` for connected graphs).
 Unreachable vertices are handled Graphs.jl-style (component-based scaling),
 which differs from `sna`'s default of treating the score as undefined.
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to build the paths from their stored face values (see
+`Networks.require_observed`).
 """
-function closeness_centrality(net::AbstractNetwork; normalized::Bool=true)
+function closeness_centrality(net::AbstractNetwork; normalized::Bool=true,
+                              missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="closeness_centrality")
     cc = Graphs.closeness_centrality(net.graph; normalize=normalized)
     return cc
 end
 
 """
-    eigenvector_centrality(net; max_iter=1000, tol=1e-10) -> Vector{Float64}
+    eigenvector_centrality(net; max_iter=1000, tol=1e-10, missing=:error) -> Vector{Float64}
 
 Compute eigenvector centrality for all vertices.
 
@@ -102,9 +121,15 @@ networks this weights vertices by the centrality of the vertices pointing
 *at* their out-neighbors' pattern; symmetrize the network first if you
 want the undirected notion. Scores are reported with non-negative
 orientation and unit L2 norm.
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to read them from the adjacency matrix at their stored face
+value (see `Networks.require_observed`).
 """
 function eigenvector_centrality(net::AbstractNetwork; max_iter::Int=1000,
-                                tol::Float64=1e-10)
+                                tol::Float64=1e-10, missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="eigenvector_centrality")
     n = nv(net)
     A = as_matrix(net)
 
@@ -129,7 +154,7 @@ function eigenvector_centrality(net::AbstractNetwork; max_iter::Int=1000,
 end
 
 """
-    bonacich_power(net; exponent=1.0, rescale=false, tol=1e-7) -> Vector{Float64}
+    bonacich_power(net; exponent=1.0, rescale=false, tol=1e-7, missing=:error) -> Vector{Float64}
 
 Compute Bonacich power centrality, following R `sna::bonpow`:
 
@@ -143,9 +168,14 @@ Compute Bonacich power centrality, following R `sna::bonpow`:
   being connected to poorly-connected others.
 - `rescale::Bool=false`: If true, rescale so scores sum to 1 (as in sna)
 - `tol::Float64=1e-7`: Solver tolerance for detecting singularity
+- `missing::Symbol=:error`: Missing-dyad policy (`Networks.require_observed`);
+  `:error` rejects a network with masked (unobserved) dyads, `:face` reads
+  each masked dyad from the adjacency matrix at its stored face value
 """
 function bonacich_power(net; exponent::Float64=1.0, rescale::Bool=false,
-                        tol::Float64=1e-7)
+                        tol::Float64=1e-7, missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="bonacich_power")
     n = nv(net)
     A = as_matrix(net)
     I_mat = Matrix{Float64}(I, n, n)
@@ -172,28 +202,41 @@ function bonacich_power(net; exponent::Float64=1.0, rescale::Bool=false,
 end
 
 """
-    katz_centrality(net; α=0.1, β=1.0) -> Vector{Float64}
+    katz_centrality(net; α=0.1, β=1.0, missing=:error) -> Vector{Float64}
 
 Compute Katz centrality.
 
 Similar to eigenvector centrality but with damping factor α.
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to use their stored face values (see
+`Networks.require_observed`).
 """
-function katz_centrality(net::AbstractNetwork; α::Float64=0.1, β::Float64=1.0)
+function katz_centrality(net::AbstractNetwork; α::Float64=0.1, β::Float64=1.0,
+                         missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="katz_centrality")
     return Graphs.katz_centrality(net.graph, α)
 end
 
 """
-    pagerank(net; α=0.85, max_iter=100, tol=1e-6) -> Vector{Float64}
+    pagerank(net; α=0.85, max_iter=100, tol=1e-6, missing=:error) -> Vector{Float64}
 
 Compute PageRank centrality.
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to use their stored face values (see
+`Networks.require_observed`).
 """
 function pagerank(net::AbstractNetwork; α::Float64=0.85, max_iter::Int=100,
-                  tol::Float64=1e-6)
+                  tol::Float64=1e-6, missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="pagerank")
     return Graphs.pagerank(net.graph, α, max_iter, tol)
 end
 
 """
-    flowbet(net) -> Vector{Float64}
+    flowbet(net; missing=:error) -> Vector{Float64}
 
 Compute Freeman flow betweenness centrality (R `sna::flowbet`):
 
@@ -202,8 +245,14 @@ Compute Freeman flow betweenness centrality (R `sna::flowbet`):
 using edge capacities from the adjacency matrix. Pairs are ordered for
 directed networks and unordered for undirected networks. Raw
 (unnormalized) scores are returned, matching sna's default.
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to take their stored face values as edge capacities (see
+`Networks.require_observed`).
 """
-function flowbet(net)
+function flowbet(net; missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="flowbet")
     n = nv(net)
     A = as_matrix(net)
     directed = is_directed(net)
@@ -226,7 +275,7 @@ function flowbet(net)
 end
 
 """
-    centralization(net, measure; mode=:total, normalized=true) -> Float64
+    centralization(net, measure; mode=:total, normalized=true, missing=:error) -> Float64
 
 Compute Freeman graph centralization for a vertex centrality `measure`,
 following R `sna::centralization`:
@@ -251,6 +300,11 @@ same size (attained by the star for the classic measures). With
   otherwise, and for undirected networks)
 - `normalized::Bool=true`: Divide by the theoretical maximum (sna
   `normalize=TRUE`)
+- `missing::Symbol=:error`: Missing-dyad policy (`Networks.require_observed`).
+  Centralization is an inferential summary of the whole structure, so the
+  default `:error` refuses a network with masked (unobserved) dyads rather
+  than centralizing a partly invented one; `:face` opts in to the stored
+  face values and is forwarded to the underlying centrality measure
 
 The theoretical maxima match `sna`'s `tmaxdev` values: e.g. `(n-1)(n-2)`
 for undirected degree, `(n-1)²(n-2)` / `(n-1)²(n-2)/2` for directed /
@@ -259,7 +313,9 @@ undirected closeness, and `n-1` / `√2(n-2)/2` for directed / undirected
 eigenvector centrality.
 """
 function centralization(net, measure::Symbol; mode::Symbol=:total,
-                        normalized::Bool=true)
+                        normalized::Bool=true, missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="centralization")
     n = nv(net)
     directed = is_directed(net)
 
@@ -270,18 +326,18 @@ function centralization(net, measure::Symbol; mode::Symbol=:total,
         else
             Float64((n - 1) * (n - 2))
         end
-        (degree_centrality(net; mode=mode), tmax)
+        (degree_centrality(net; mode=mode, missing=policy), tmax)
     elseif measure == :betweenness
         tmax = directed ? Float64((n - 1)^2 * (n - 2)) :
                           (n - 1)^2 * (n - 2) / 2
-        (betweenness_centrality(net), tmax)
+        (betweenness_centrality(net; missing=policy), tmax)
     elseif measure == :closeness
         tmax = directed ? (n - 1) * (1 - 1 / n) :
                           (n - 2) * (n - 1) / (2 * n - 3)
-        (_freeman_closeness(net), tmax)
+        (_freeman_closeness(net; missing=policy), tmax)
     elseif measure == :eigenvector
         tmax = directed ? Float64(n - 1) : sqrt(2) / 2 * (n - 2)
-        (eigenvector_centrality(net), tmax)
+        (eigenvector_centrality(net; missing=policy), tmax)
     else
         throw(ArgumentError("Unknown centralization measure: $measure " *
                             "(use :degree, :betweenness, :closeness, or " *
@@ -301,9 +357,10 @@ end
 # total geodesic distance to all other vertices, 0 when any is unreachable
 # (this is what sna::closeness computes and what centralization expects;
 # closeness_centrality uses Graphs.jl's component-based scaling instead).
-function _freeman_closeness(net)
+function _freeman_closeness(net; missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
     n = nv(net)
-    dist = geodesic_distance(net)
+    dist = geodesic_distance(net; missing=policy)
     clo = zeros(n)
     for i in 1:n
         total = 0.0

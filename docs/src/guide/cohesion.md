@@ -7,7 +7,7 @@ Cohesion analysis examines how well-connected a network is and identifies its su
 Throughout this guide, we use a network with clear subgroup structure:
 
 ```julia
-using Network, SNA
+using Networks, SNA
 
 # Network with two dense groups connected by a bridge
 net = network(8; directed=false)
@@ -367,7 +367,7 @@ Average path length is essential for:
 A comprehensive cohesion analysis uses multiple measures together:
 
 ```julia
-using Network, SNA
+using Networks, SNA
 
 net = network(10; directed=false)
 # Create a network with interesting structure

@@ -9,7 +9,7 @@ using LinearAlgebra
 using Statistics
 
 """
-    structural_equivalence(net; method=:correlation) -> Matrix{Float64}
+    structural_equivalence(net; method=:correlation, missing=:error) -> Matrix{Float64}
 
 Compute structural equivalence between all pairs of vertices.
 
@@ -22,11 +22,18 @@ to and from all other vertices.
     - `:correlation`: Pearson correlation of adjacency rows/columns
     - `:euclidean`: Euclidean distance
     - `:hamming`: Hamming distance (proportion of different ties)
+- `missing::Symbol=:error`: Missing-dyad policy (`Networks.require_observed`);
+  `:error` rejects a network with masked (unobserved) dyads, `:face` keeps
+  each masked dyad in the tie profiles at its stored face value (there is no
+  pairwise-deletion variant)
 
 # Returns
 Matrix of similarity/distance scores.
 """
-function structural_equivalence(net; method::Symbol=:correlation)
+function structural_equivalence(net; method::Symbol=:correlation,
+                                missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="structural_equivalence")
     A = as_matrix(net)
     n = nv(net)
 
@@ -71,7 +78,7 @@ function structural_equivalence(net; method::Symbol=:correlation)
 end
 
 """
-    regular_equivalence(net; max_iter=100, tol=1e-6) -> Matrix{Float64}
+    regular_equivalence(net; max_iter=100, tol=1e-6, missing=:error) -> Matrix{Float64}
 
 Compute regular equivalence between all pairs of vertices.
 
@@ -82,8 +89,15 @@ Note: this uses an iterative neighbor-matching similarity (CATREGE-style
 best-match averaging over in- and out-neighborhoods). It is in the spirit
 of White & Reitz regular equivalence but is **not** the Burt/White REGE
 algorithm, so scores are not directly comparable to UCINET/R REGE output.
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to include them in the neighborhoods at their stored face
+values (see `Networks.require_observed`).
 """
-function regular_equivalence(net; max_iter::Int=100, tol::Float64=1e-6)
+function regular_equivalence(net; max_iter::Int=100, tol::Float64=1e-6,
+                             missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="regular_equivalence")
     n = nv(net)
     A = as_matrix(net)
 
@@ -140,7 +154,7 @@ function regular_equivalence(net; max_iter::Int=100, tol::Float64=1e-6)
 end
 
 """
-    equiv_clust(net; method=:structural, k=nothing) -> Vector{Int}
+    equiv_clust(net; method=:structural, k=nothing, missing=:error) -> Vector{Int}
 
 Cluster vertices by equivalence using agglomerative hierarchical clustering
 with average linkage (UPGMA) on the equivalence distance matrix, in the
@@ -152,17 +166,23 @@ spirit of R `sna::equiv.clust`.
 - `k::Union{Int,Nothing}=nothing`: Number of clusters (defaults to
   `max(2, n ÷ 4)`; values `≥ n` yield the trivial one-vertex-per-cluster
   solution)
+- `missing::Symbol=:error`: Missing-dyad policy (`Networks.require_observed`);
+  `:error` rejects a network with masked (unobserved) dyads, `:face` uses
+  their stored face values in the underlying equivalence matrix
 
 # Returns
 Vector of cluster assignments in `1:k` for each vertex.
 """
-function equiv_clust(net; method::Symbol=:structural, k::Union{Int,Nothing}=nothing)
+function equiv_clust(net; method::Symbol=:structural,
+                     k::Union{Int,Nothing}=nothing, missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="equiv_clust")
     # Compute distance matrix
     if method == :structural
-        sim = structural_equivalence(net; method=:correlation)
+        sim = structural_equivalence(net; method=:correlation, missing=policy)
         dist = 1 .- sim  # Convert similarity to distance
     else
-        sim = regular_equivalence(net)
+        sim = regular_equivalence(net; missing=policy)
         dist = 1 .- sim
     end
 
@@ -230,9 +250,14 @@ function _hclust_average(dist::Matrix{Float64}, k::Int)
 end
 
 """
-    blockmodel(net; k::Int, method=:structural) -> NamedTuple
+    blockmodel(net; k::Int, method=:structural, missing=:error) -> NamedTuple
 
 Create a blockmodel from equivalence-based clustering.
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to let them enter both the clustering and the block densities
+at their stored face values (see `Networks.require_observed`). Block densities
+are *not* renormalized over observed dyads only.
 
 # Returns
 NamedTuple with:
@@ -240,9 +265,12 @@ NamedTuple with:
 - `block_matrix::Matrix{Float64}`: Density of ties between blocks
 - `n_blocks::Int`: Number of blocks
 """
-function blockmodel(net; k::Int, method::Symbol=:structural)
+function blockmodel(net; k::Int, method::Symbol=:structural,
+                    missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="blockmodel")
     n = nv(net)
-    membership = equiv_clust(net; method=method, k=k)
+    membership = equiv_clust(net; method=method, k=k, missing=policy)
     A = as_matrix(net)
     # equiv_clust clamps k to at most n; size blocks by actual labels
     k = maximum(membership)

@@ -15,6 +15,14 @@ numbers were wrong or R-divergent).
 
 ### Breaking
 
+- **Every exported measure now refuses a network with masked (unobserved)
+  dyads** rather than silently computing from their face values. Measures take
+  a `missing::Symbol=:error` keyword and call Networks.jl's `require_observed`;
+  `missing=:face` is the explicit opt-in to the previous behaviour and returns
+  exactly the old numbers. Covers the centrality, cohesion, measure,
+  equivalence, and QAP/network-regression routines (`netlm`/`netlogit` guard
+  the response *and* every predictor). *Migration:* pass `missing=:face`, or
+  `clear_missing_dyads!(net)`, to analyse a masked network as recorded.
 - **`degree_centrality` single-counts undirected edges** (Medici now scores
   the textbook 6, not 12) and normalization uses the correct `n−1` ceiling.
   *Migration:* multiply by 2 if you calibrated against the old doubled
@@ -75,7 +83,7 @@ numbers were wrong or R-divergent).
   `diameter`, `bridges`, and centrality functions) via `import Graphs:`
   instead of defining same-named local functions — `using SNA, Graphs` no
   longer produces ambiguous bindings. `using SNA` also re-exports the
-  Network.jl public API.
+  Networks.jl public API.
 - `eigenvector_centrality` defaults tightened (`max_iter` 100 → 1000, `tol`
   1e-6 → 1e-10) and returns the non-negative Perron orientation.
 

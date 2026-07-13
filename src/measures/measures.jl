@@ -6,25 +6,35 @@ transitivity, and census functions.
 """
 
 """
-    density(net) -> Float64
+    density(net; missing=:error) -> Float64
 
 Compute network density (proportion of possible edges that exist).
-Alias for network_density from Network.jl. Undirected edges are
+Alias for network_density from Networks.jl. Undirected edges are
 single-counted, so an undirected network has `ne(net) / (n(n-1)/2)`.
 
 Extends `Graphs.density` for `AbstractNetwork` types.
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to count each masked dyad at its stored face value — i.e.
+the denominator still contains every dyad, and an unobserved tie recorded as
+present counts as an edge (see `Networks.require_observed`). SNA.jl does not
+implement a "density over observed dyads only" estimator.
 """
-density(net::AbstractNetwork) = network_density(net)
+function density(net::AbstractNetwork; missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="density")
+    return network_density(net)
+end
 
 """
-    gden(net) -> Float64
+    gden(net; kwargs...) -> Float64
 
 Alias for [`density`](@ref) (R `sna` compatibility).
 """
-gden(net) = density(net)
+gden(net; kwargs...) = density(net; kwargs...)
 
 """
-    reciprocity(net; method=:dyadic) -> Float64
+    reciprocity(net; method=:dyadic, missing=:error) -> Float64
 
 Compute network reciprocity, following R `sna::grecip`.
 
@@ -37,13 +47,18 @@ Compute network reciprocity, following R `sna::grecip`.
       `M / (M + A)`
     - `:edgewise`: Proportion of edges that are reciprocated:
       `2M / (2M + A)`
+- `missing::Symbol=:error`: Missing-dyad policy (`Networks.require_observed`);
+  `:error` rejects a network with masked (unobserved) dyads, `:face` classifies
+  each masked dyad from its stored face value
 """
-function reciprocity(net; method::Symbol=:dyadic)
+function reciprocity(net; method::Symbol=:dyadic, missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="reciprocity")
     if !is_directed(net)
         return 1.0  # All ties are mutual in undirected networks
     end
 
-    census = dyad_census(net)
+    census = dyad_census(net; missing=policy)
     mutual, asymmetric, null = census.mutual, census.asymmetric, census.null
 
     if method == :dyadic
@@ -71,7 +86,7 @@ Alias for [`reciprocity`](@ref) (R `sna` compatibility).
 grecip(net; kwargs...) = reciprocity(net; kwargs...)
 
 """
-    transitivity(net; type=:global) -> Float64 or Vector{Float64}
+    transitivity(net; type=:global, missing=:error) -> Float64 or Vector{Float64}
 
 Compute network transitivity.
 
@@ -85,8 +100,14 @@ Compute network transitivity.
       (3 × triangles / 2-paths). Returns `Float64`.
     - `:local`: Vector of local clustering coefficients (`Vector{Float64}`)
     - `:average`: Average of local clustering coefficients (`Float64`)
+- `missing::Symbol=:error`: Missing-dyad policy (`Networks.require_observed`);
+  `:error` rejects a network with masked (unobserved) dyads, `:face` counts
+  each masked dyad at its stored face value in both the numerator and the
+  denominator of the triple counts
 """
-function transitivity(net; type::Symbol=:global)
+function transitivity(net; type::Symbol=:global, missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="transitivity")
     if type == :global
         # sna::gtrans weak transitivity; for undirected networks the
         # symmetric adjacency makes this 3·triangles / 2-paths
@@ -129,9 +150,13 @@ Alias for [`transitivity`](@ref) (R `sna` compatibility).
 gtrans(net; kwargs...) = transitivity(net; kwargs...)
 
 """
-    dyad_census(net) -> NamedTuple
+    dyad_census(net; missing=:error) -> NamedTuple
 
 Compute the dyad census (mutual, asymmetric, null counts).
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to classify each masked dyad from its stored face value (see
+`Networks.require_observed`). There is no NA cell in this census.
 
 # Returns
 NamedTuple with fields:
@@ -139,7 +164,9 @@ NamedTuple with fields:
 - `asymmetric::Int`: Number of asymmetric dyads
 - `null::Int`: Number of null dyads
 """
-function dyad_census(net)
+function dyad_census(net; missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="dyad_census")
     n = nv(net)
     mutual = 0
     asymmetric = 0
@@ -164,9 +191,13 @@ function dyad_census(net)
 end
 
 """
-    triad_census(net) -> Vector{Int}
+    triad_census(net; missing=:error) -> Vector{Int}
 
 Compute the triad census.
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to classify triads from the stored face values of their
+masked dyads (see `Networks.require_observed`).
 
 For directed networks, returns the 16-element Davis–Leinhardt census over
 the M-A-N (mutual/asymmetric/null) isomorphism classes, in the standard
@@ -183,7 +214,9 @@ at least one tie are enumerated (each exactly once, from its lowest-labeled
 connected pair), so the cost is `O(Σ_(u,v)∈E (deg(u)+deg(v)))` rather than
 `O(n³)`; the empty-triad count is recovered by subtraction from `C(n,3)`.
 """
-function triad_census(net)
+function triad_census(net; missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="triad_census")
     is_directed(net) || return _triad_census_undirected(net)
 
     n = nv(net)
@@ -294,7 +327,7 @@ function _triad_census_undirected(net)
 end
 
 """
-    hierarchy(net; measure=:reciprocity) -> Float64
+    hierarchy(net; measure=:reciprocity, missing=:error) -> Float64
 
 Compute a graph hierarchy measure, following R `sna::hierarchy`.
 
@@ -304,21 +337,26 @@ Compute a graph hierarchy measure, following R `sna::hierarchy`.
     - `:krackhardt`: Krackhardt's hierarchy — the proportion of reachable
       (unordered) pairs whose reachability is asymmetric (one can reach the
       other but not vice versa)
+- `missing::Symbol=:error`: Missing-dyad policy (`Networks.require_observed`);
+  `:error` rejects a network with masked (unobserved) dyads, `:face` uses
+  their stored face values
 """
-function hierarchy(net; measure::Symbol=:reciprocity)
+function hierarchy(net; measure::Symbol=:reciprocity, missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="hierarchy")
     n = nv(net)
     if n <= 1
         return 0.0
     end
 
     if measure == :reciprocity
-        return 1.0 - reciprocity(net; method=:dyadic)
+        return 1.0 - reciprocity(net; method=:dyadic, missing=policy)
     elseif measure != :krackhardt
         throw(ArgumentError("Unknown hierarchy measure: $measure"))
     end
 
     # Krackhardt hierarchy from the reachability matrix
-    reach = reachability(net)
+    reach = reachability(net; missing=policy)
 
     hierarchical = 0
     total_connected = 0
@@ -341,9 +379,13 @@ function hierarchy(net; measure::Symbol=:reciprocity)
 end
 
 """
-    efficiency(net) -> Float64
+    efficiency(net; missing=:error) -> Float64
 
 Compute Krackhardt's efficiency, following R `sna::efficiency`.
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to count their stored face values as arcs (see
+`Networks.require_observed`).
 
 Efficiency is computed per weak component in arc (digraph) terms, exactly
 as in sna: a component of size `nᶜ` requires `nᶜ − 1` arcs for weak
@@ -352,7 +394,9 @@ are "excess" and efficiency is `1 − Σ excess / Σ maximum possible excess`.
 Undirected edges count as two arcs (sna treats symmetric data as a
 digraph).
 """
-function efficiency(net)
+function efficiency(net; missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="efficiency")
     n = nv(net)
     if n <= 1
         return 1.0
@@ -386,13 +430,19 @@ function efficiency(net)
 end
 
 """
-    connectedness(net) -> Float64
+    connectedness(net; missing=:error) -> Float64
 
 Compute Krackhardt's connectedness: the proportion of (unordered) vertex
 pairs joined by a semipath, i.e. lying in the same weak component
 (R `sna::connectedness`).
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to take their stored face values as ties (see
+`Networks.require_observed`).
 """
-function connectedness(net)
+function connectedness(net; missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="connectedness")
     n = nv(net)
     if n <= 1
         return 1.0
@@ -406,33 +456,51 @@ function connectedness(net)
 end
 
 """
-    mutuality(net) -> Int
+    mutuality(net; missing=:error) -> Int
 
 Compute network mutuality: the number of mutual (reciprocated) dyads,
 matching R `sna::mutuality` which returns a count, not a proportion.
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to classify them from their stored face values (see
+`Networks.require_observed`).
 """
-function mutuality(net)
-    return dyad_census(net).mutual
+function mutuality(net; missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="mutuality")
+    return dyad_census(net; missing=policy).mutual
 end
 
 """
-    component_dist(net) -> Vector{Int}
+    component_dist(net; missing=:error) -> Vector{Int}
 
 Return the distribution of component sizes.
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to take their stored face values as ties (see
+`Networks.require_observed`).
 """
-function component_dist(net)
+function component_dist(net; missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="component_dist")
     comps = Graphs.connected_components(net.graph)
     return sort([length(c) for c in comps], rev=true)
 end
 
 """
-    reachability(net) -> Matrix{Bool}
+    reachability(net; missing=:error) -> Matrix{Bool}
 
 Compute the reachability matrix.
 
 Entry (i,j) is true if vertex i can reach vertex j via some path.
+
+Masked (unobserved) dyads are rejected by default (`missing=:error`); pass
+`missing=:face` to traverse them at their stored face values (see
+`Networks.require_observed`).
 """
-function reachability(net)
+function reachability(net; missing::Symbol=:error)
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    require_observed(net, policy; context="reachability")
     n = nv(net)
     reach = falses(n, n)
 

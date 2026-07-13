@@ -27,11 +27,11 @@ SNA.jl is a port of the R [`sna`](https://cran.r-project.org/package=sna) packag
 ## Installation
 
 Requires Julia 1.12+. SNA.jl depends on the unregistered
-[Network.jl](https://github.com/statistical-network-analysis-with-Julia/Network.jl) package, which must be added first:
+[Networks.jl](https://github.com/statistical-network-analysis-with-Julia/Networks.jl) package, which must be added first:
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/Network.jl")
+Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/Networks.jl")
 Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/SNA.jl")
 ```
 
@@ -228,7 +228,7 @@ an `rng` keyword for reproducibility.
 ### Basic Example
 
 ```julia
-using Network
+using Networks
 using SNA
 
 # Create a network
@@ -327,7 +327,7 @@ average_path_length(net)    # Mean over reachable pairs
 ### QAP Test and Network Regression
 
 ```julia
-using Network, SNA, Statistics, Random
+using Networks, SNA, Statistics, Random
 
 flo = load_dataset(:florentine_marriage)
 biz = load_dataset(:florentine_business)

@@ -14,7 +14,7 @@ using Graphs
 using LinearAlgebra
 using Random
 using Statistics
-using Network
+using Networks
 
 # Extend (rather than shadow) the Graphs.jl generics that share a name with
 # SNA functions, so that `using SNA, Graphs` never produces ambiguous
@@ -23,7 +23,14 @@ import Graphs: density, diameter, bridges,
     degree_centrality, betweenness_centrality, closeness_centrality,
     eigenvector_centrality, katz_centrality, pagerank
 
-# Re-export the Network.jl public API so that `using SNA` alone provides the
+# The shared result-metadata protocol (Networks.jl `src/results.jl`): the
+# generic accessors that say what a fit actually did. Imported by name because
+# SNA adds methods for `NetLMResult`/`NetLogitResult`; `fit_metadata(fit)`
+# collects them.
+import Networks: estimand, objective, is_exact, se_method, missing_method,
+                 approximations
+
+# Re-export the Networks.jl public API so that `using SNA` alone provides the
 # network constructors and accessors, mirroring R's library(sna) working with
 # network objects out of the box. The `Network` name itself is skipped: inside
 # this module it is bound to the struct, and exporting it would collide with

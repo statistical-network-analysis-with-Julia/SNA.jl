@@ -18,7 +18,7 @@ The result vector is indexed by vertex ID, so `result[i]` gives the centrality s
 Throughout this guide, we use a small directed network to illustrate each measure:
 
 ```julia
-using Network, SNA
+using Networks, SNA
 
 # Create example network
 net = network(7; directed=true)
@@ -358,7 +358,7 @@ Flow betweenness is appropriate when information or resources can travel along n
 Different measures can produce very different rankings:
 
 ```julia
-using Network, SNA
+using Networks, SNA
 
 net = network(7; directed=true)
 add_edge!(net, 1, 2); add_edge!(net, 1, 3)
@@ -416,7 +416,7 @@ perfect star. `centralization` follows R `sna::centralization`, computing
 $C = \sum_i (c_{max} - c_i) / C_{max}$ with sna's theoretical maxima:
 
 ```julia
-using Network, SNA
+using Networks, SNA
 
 star = network(5; directed=false)
 for v in 2:5

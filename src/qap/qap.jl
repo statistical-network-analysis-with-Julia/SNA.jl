@@ -20,6 +20,32 @@ using Statistics
 _sociomatrix(x::AbstractNetwork) = Float64.(as_matrix(x))
 _sociomatrix(x::AbstractMatrix) = Matrix{Float64}(x)
 
+# Apply the missing-dyad policy to every dyadic argument of a QAP routine.
+# `Network` arguments are guarded with `require_observed`; raw matrices carry
+# no mask, so nothing can be masked in them — but the policy itself is still
+# validated so that a typo (`missing=:faec`) never passes silently.
+function _require_observed_dyads(policy::Symbol, context::AbstractString,
+                                 args...)
+    policy in MISSING_POLICIES ||
+        throw(ArgumentError("invalid missing-dyad policy $(repr(policy)); " *
+                            "expected one of " *
+                            "$(join(map(repr, MISSING_POLICIES), ", "))"))
+    for a in args
+        a isa AbstractNetwork && require_observed(a, policy; context=context)
+    end
+    return nothing
+end
+
+# What the missing-dyad policy actually AMOUNTED TO for these arguments, for the
+# shared result-metadata protocol. Call only after `_require_observed_dyads` has
+# passed, so `:error` + a mask has already thrown: what remains is either no mask
+# at all (`:none`) or an explicit opt-in to face values (`:condition_on_face`).
+function _missing_method_of(policy::Symbol, args...)
+    masked = any(a -> a isa AbstractNetwork && n_missing_dyads(a) > 0, args)
+    masked || return :none
+    return :condition_on_face      # policy === :face, guard already let it through
+end
+
 # Apply a random vertex permutation to rows and columns (sna::rmperm)
 function _rmperm(rng::Random.AbstractRNG, A::Matrix{Float64})
     p = randperm(rng, size(A, 1))
@@ -117,7 +143,7 @@ function Base.show(io::IO, result::QAPTestResult)
 end
 
 """
-    qaptest(f, g1, g2; reps=1000, rng=Random.default_rng()) -> QAPTestResult
+    qaptest(f, g1, g2; reps=1000, missing=:error, rng=Random.default_rng()) -> QAPTestResult
 
 Perform a quadratic assignment procedure (QAP) test for the graph-level
 statistic `f` on the network pair `(g1, g2)`, following R `sna::qaptest`.
@@ -131,6 +157,15 @@ of no association between the two structures conditional on both.
 
 `g1` and `g2` may be `Network` objects or adjacency matrices of equal size.
 
+# Missing dyads
+
+QAP is an inferential procedure: a masked (unobserved) dyad read at face
+value contributes a fabricated observation to both the test statistic and
+the permutation null. `missing=:error` (the default) therefore rejects a
+network argument with masked dyads; `missing=:face` is the explicit opt-in to
+computing `f` from the stored face values (see `Networks.require_observed`).
+Raw matrix arguments carry no mask and are always taken as given.
+
 # Example
 ```julia
 flo = load_dataset(:florentine_marriage)
@@ -139,8 +174,10 @@ gcor(a, b) = cor(vec(a), vec(b))
 qt = qaptest(gcor, flo, biz; reps=1000)
 ```
 """
-function qaptest(f, g1, g2; reps::Int=1000,
+function qaptest(f, g1, g2; reps::Int=1000, missing::Symbol=:error,
                  rng::Random.AbstractRNG=Random.default_rng())
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
+    _require_observed_dyads(policy, "qaptest", g1, g2)
     reps > 0 || throw(ArgumentError("reps must be positive"))
     A = _sociomatrix(g1)
     B = _sociomatrix(g2)
@@ -203,6 +240,11 @@ struct NetLMResult
     reps::Int
     intercept::Bool
     directed::Bool
+    # The missing-dyad policy the fit ran under, so the result can report it
+    # through the shared metadata protocol (`missing_method`) instead of
+    # answering ":unspecified". `:none` when no argument carried a mask,
+    # `:condition_on_face` when the caller opted into face values.
+    missing_method::Symbol
 end
 
 function Base.show(io::IO, result::NetLMResult)
@@ -242,8 +284,11 @@ function _resolve_nullhyp(nullhyp::Symbol, nx::Int, fname::String)
     return nullhyp
 end
 
-# Build the dyadic design: returns (yv, X, Gx, idx, names, directed)
-function _qap_design(y, xs, intercept::Bool, mode::Symbol, fname::String)
+# Build the dyadic design: returns (yv, X, Gx, idx, names, directed).
+# `policy` is the missing-dyad policy applied to `y` and every predictor.
+function _qap_design(y, xs, intercept::Bool, mode::Symbol, fname::String,
+                     policy::Symbol)
+    _require_observed_dyads(policy, fname, y, xs...)
     isempty(xs) && !intercept &&
         throw(ArgumentError("$fname needs at least one predictor"))
     directed = _qap_directed(y, mode)
@@ -306,7 +351,7 @@ end
 
 """
     netlm(y, xs; intercept=true, nullhyp=:qapspp, reps=1000, mode=:auto,
-          rng=Random.default_rng()) -> NetLMResult
+          missing=:error, rng=Random.default_rng()) -> NetLMResult
 
 Linear (OLS) regression of the network `y` on one or more predictor
 networks `xs`, with QAP null-hypothesis testing, following R `sna::netlm`.
@@ -338,6 +383,14 @@ t-statistics against a permutation null distribution.
 - `reps::Int=1000`: Number of permutation replications
 - `mode::Symbol=:auto`: Dyad set — `:auto` (from `is_directed(y)`, or
   directed for raw matrices), `:digraph`, or `:graph`
+- `missing::Symbol=:error`: Missing-dyad policy for `y` and the predictors
+  (`Networks.require_observed`). Network regression is inferential: a masked
+  (unobserved) dyad read at face value becomes a fabricated row of the design
+  matrix, biasing both the coefficients and the QAP null. The default `:error`
+  therefore rejects a masked network argument. `:face` is the explicit opt-in
+  to regressing on the stored face values; `netlm` does **not** implement
+  listwise deletion of unobserved dyads or any missing-data estimator
+  (`Networks.supports_missing(netlm) == false`)
 - `rng`: Random number generator
 
 The two-sided permutation p-value `pgreqabs` is reported by `show`;
@@ -352,9 +405,12 @@ fit = netlm(flo, biz)
 """
 function netlm(y, xs::Union{Tuple,AbstractVector}; intercept::Bool=true,
                nullhyp::Symbol=:qapspp, reps::Int=1000, mode::Symbol=:auto,
+               missing::Symbol=:error,
                rng::Random.AbstractRNG=Random.default_rng())
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
     yv, X, Gx, idx, names, directed = _qap_design(y, xs, intercept, mode,
-                                                  "netlm")
+                                                  "netlm", policy)
+    miss = _missing_method_of(policy, y, xs...)
     N, nx = size(X)
     N > nx || throw(ArgumentError("more predictors than dyadic observations"))
 
@@ -379,7 +435,7 @@ function netlm(y, xs::Union{Tuple,AbstractVector}; intercept::Bool=true,
         pgreqabs = 2 .* ccdf.(tdist, abs.(tstat))
         return NetLMResult(coef, names, tstat, pleeq, pgreq, pgreqabs,
                            nothing, r_squared, adj_r_squared, N, df_residual,
-                           nullhyp, 0, intercept, directed)
+                           nullhyp, 0, intercept, directed, miss)
     end
 
     reps > 0 || throw(ArgumentError("reps must be positive"))
@@ -412,7 +468,7 @@ function netlm(y, xs::Union{Tuple,AbstractVector}; intercept::Bool=true,
     pleeq, pgreq, pgreqabs = _perm_pvalues(dist, tstat)
     return NetLMResult(coef, names, tstat, pleeq, pgreq, pgreqabs, dist,
                        r_squared, adj_r_squared, N, df_residual, nullhyp,
-                       reps, intercept, directed)
+                       reps, intercept, directed, miss)
 end
 
 netlm(y, x::Union{AbstractNetwork,AbstractMatrix}; kwargs...) =
@@ -466,6 +522,8 @@ struct NetLogitResult
     reps::Int
     intercept::Bool
     directed::Bool
+    # See NetLMResult: the missing-dyad policy the fit ran under.
+    missing_method::Symbol
 end
 
 function Base.show(io::IO, result::NetLogitResult)
@@ -523,7 +581,7 @@ end
 
 """
     netlogit(y, xs; intercept=true, nullhyp=:qapspp, reps=1000, mode=:auto,
-             rng=Random.default_rng()) -> NetLogitResult
+             missing=:error, rng=Random.default_rng()) -> NetLogitResult
 
 Logistic regression of the binary network `y` on one or more predictor
 networks `xs`, with QAP null-hypothesis testing, following R
@@ -541,6 +599,14 @@ others, then permuted and refit in the logistic model.
 
 `y` must be dichotomous (all dyad values 0 or 1).
 
+Missing dyads are handled exactly as in [`netlm`](@ref): masked (unobserved)
+dyads in `y` or in a predictor are rejected by default (`missing=:error`), and
+`missing=:face` is the explicit opt-in to fitting on their stored face values.
+`netlogit` implements no missing-data estimator
+(`Networks.supports_missing(netlogit) == false`); for likelihood-based
+inference under missingness use a model that does (e.g. ERGM.jl's MPLE, which
+drops masked dyads from the design matrix).
+
 # Example
 ```julia
 flo = load_dataset(:florentine_marriage)
@@ -550,9 +616,12 @@ fit = netlogit(flo, biz)
 """
 function netlogit(y, xs::Union{Tuple,AbstractVector}; intercept::Bool=true,
                   nullhyp::Symbol=:qapspp, reps::Int=1000, mode::Symbol=:auto,
+                  missing::Symbol=:error,
                   rng::Random.AbstractRNG=Random.default_rng())
+    policy = missing  # local alias; `missing` here is the kwarg, not `Base.missing`
     yv, X, Gx, idx, names, directed = _qap_design(y, xs, intercept, mode,
-                                                  "netlogit")
+                                                  "netlogit", policy)
+    miss = _missing_method_of(policy, y, xs...)
     N, nx = size(X)
     N > nx || throw(ArgumentError("more predictors than dyadic observations"))
     all(v -> v == 0.0 || v == 1.0, yv) ||
@@ -581,7 +650,7 @@ function netlogit(y, xs::Union{Tuple,AbstractVector}; intercept::Bool=true,
         pgreqabs = 2 .* ccdf.(tdist, abs.(tstat))
         return NetLogitResult(coef, names, se, tstat, pleeq, pgreq, pgreqabs,
                               nothing, deviance, null_deviance, aic, bic, N,
-                              df_residual, nullhyp, 0, intercept, directed)
+                              df_residual, nullhyp, 0, intercept, directed, miss)
     end
 
     reps > 0 || throw(ArgumentError("reps must be positive"))
@@ -616,8 +685,125 @@ function netlogit(y, xs::Union{Tuple,AbstractVector}; intercept::Bool=true,
     pleeq, pgreq, pgreqabs = _perm_pvalues(dist, tstat)
     return NetLogitResult(coef, names, se, tstat, pleeq, pgreq, pgreqabs,
                           dist, deviance, null_deviance, aic, bic, N,
-                          df_residual, nullhyp, reps, intercept, directed)
+                          df_residual, nullhyp, reps, intercept, directed, miss)
 end
 
 netlogit(y, x::Union{AbstractNetwork,AbstractMatrix}; kwargs...) =
     netlogit(y, (x,); kwargs...)
+
+# ---------------------------------------------------------------------------
+# The shared result-metadata protocol (Networks.jl `src/results.jl`)
+# ---------------------------------------------------------------------------
+#
+# `fit_metadata(fit)` collects these accessors. The point they have to make for
+# the QAP regressions is that the ESTIMATOR and the INFERENCE come from
+# different places: the coefficients are a plain dyad-independent OLS/logit fit,
+# and everything that makes the result a *network* method lives in the
+# permutation null the p-values are read off.
+
+estimand(::NetLMResult) = :network_regression
+estimand(::NetLogitResult) = :network_logit_regression
+
+"""
+    objective(::NetLMResult) -> Symbol
+
+`:least_squares` — the coefficients are ordinary least squares of the vectorized
+dyads of `y` on the vectorized dyads of the predictors. Nothing about the QAP
+null enters the point estimates.
+"""
+objective(::NetLMResult) = :least_squares
+
+"""
+    objective(::NetLogitResult) -> Symbol
+
+`:likelihood` — the coefficients maximize the binomial (logit-link) likelihood of
+the vectorized dyads, fitted by IRLS.
+"""
+objective(::NetLogitResult) = :likelihood
+
+"""
+    is_exact(::NetLMResult) -> Bool
+
+`true`: OLS solves its objective in closed form, and that objective is the exact
+Gaussian likelihood of the model actually fitted — a regression treating the
+dyads as independent observations. It is **not** a statement that the dyads are
+independent; that assumption is exactly what the QAP permutation null in
+`Networks.approximations` is there to work around.
+"""
+is_exact(::NetLMResult) = true
+
+"""
+    is_exact(::NetLogitResult) -> Bool
+
+`true`: IRLS maximizes the exact binomial likelihood of the dyad-independent
+logit model that is being fitted. As with [`netlm`](@ref), this says the
+objective is not approximated — not that the independence assumption holds.
+"""
+is_exact(::NetLogitResult) = true
+
+"""
+    se_method(::NetLMResult) -> Symbol
+
+`:none`. `netlm` reports **no standard errors**: the result carries the OLS
+t-statistics and permutation p-values only. The t-statistics are computed from
+homoskedastic iid-dyad OLS standard errors and serve as the test statistic that
+is compared against the QAP null — they are not a calibrated uncertainty
+statement about the coefficients.
+"""
+se_method(::NetLMResult) = :none
+
+"""
+    se_method(::NetLogitResult) -> Symbol
+
+`:fisher` — the inverse Fisher information of the binomial GLM (`inv(X'WX)` at
+convergence), which treats every dyad as an independent observation and is
+therefore anticonservative under dyadic dependence. The reported p-values do NOT
+come from these standard errors (unless `nullhyp = :classical`): they come from
+the QAP permutation null.
+"""
+se_method(::NetLogitResult) = :fisher
+
+# The missing-dyad policy (`missing = :error` by default, `:face` the explicit
+# opt-in) is applied to the inputs at fit time but is not stored on the result,
+# so it cannot be reported: the truthful answer is `:unspecified` rather than a
+# guess. `approximations` names both possibilities.
+missing_method(r::NetLMResult) = r.missing_method
+missing_method(r::NetLogitResult) = r.missing_method
+
+# Shared caveats for both QAP regressions.
+function _qap_approximations(nullhyp::Symbol, reps::Int, se_note::String)
+    out = String[
+        "the dyads are treated as independent observations by the estimator; " *
+        "the dyadic dependence is addressed only by the null distribution the " *
+        "p-values are read off",
+        se_note,
+    ]
+    if nullhyp === :classical
+        push!(out, "nullhyp = :classical: the p-values are parametric t/z tests " *
+                   "that assume independent dyads — for reference only, since " *
+                   "dyadic dependence typically invalidates them. No permutation " *
+                   "was performed")
+    else
+        push!(out, "p-values are Monte-Carlo QAP permutation p-values " *
+                   "(nullhyp = :$nullhyp, $reps replications): they carry " *
+                   "simulation error, and can be exactly 0 or 1")
+    end
+    push!(out, "the missing-dyad policy applied to the inputs is not recorded on " *
+               "the result: masked dyads are rejected by default (missing = " *
+               ":error), and with missing = :face they enter the design matrix " *
+               "at their stored face value")
+    return out
+end
+
+approximations(r::NetLMResult) =
+    _qap_approximations(r.nullhyp, r.reps,
+        "no standard errors are reported; the t-statistics use homoskedastic " *
+        "iid-dyad OLS standard errors and serve only as the test statistic " *
+        "compared against the null distribution")
+
+approximations(r::NetLogitResult) =
+    _qap_approximations(r.nullhyp, r.reps,
+        "the standard errors are the inverse Fisher information of a binomial " *
+        "GLM that treats the dyads as independent: they are expected " *
+        "anticonservative under dyadic dependence, and the reported p-values " *
+        "are not derived from them")

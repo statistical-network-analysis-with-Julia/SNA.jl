@@ -56,3 +56,27 @@ netlm
 netlogit
 ```
 
+### Result Types
+
+```@docs
+QAPTestResult
+NetLMResult
+NetLogitResult
+```
+
+### Result Metadata
+
+SNA.jl implements the ecosystem's
+[result-metadata protocol](https://Statistical-network-analysis-with-Julia.github.io/Networks.jl/dev/api/metadata/)
+for its regression results, so what a fit did is inspectable via
+`Networks.fit_metadata(result)`.
+
+```@docs
+objective(::NetLMResult)
+objective(::NetLogitResult)
+is_exact(::NetLMResult)
+is_exact(::NetLogitResult)
+se_method(::NetLMResult)
+se_method(::NetLogitResult)
+```
+

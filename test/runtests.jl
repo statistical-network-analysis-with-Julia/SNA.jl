@@ -1,5 +1,5 @@
 using SNA
-using Network
+using Networks
 using Graphs
 using Random
 using Statistics
@@ -733,5 +733,243 @@ const FLO_WEALTH = Float64[10, 36, 55, 44, 20, 32, 8, 42, 103, 48, 49, 3,
         # All edges are bridges in a path
         br = bridges(net)
         @test length(br) == 4
+    end
+
+    # ---------------------------------------------------------------------
+    # Missing-dyad policy (SNA.jl#1)
+    #
+    # Every exported measure takes `missing::Symbol=:error`: with masked
+    # (unobserved) dyads present it refuses to compute rather than silently
+    # reading their face values. `missing=:face` is the explicit opt-in and
+    # must reproduce exactly what the same network without a mask returns.
+    # ---------------------------------------------------------------------
+
+    # A directed network with two masked dyads: (1,2) is a *present*-face
+    # mask (the arc exists in the backing graph) and (4,5) an *absent*-face
+    # mask (no arc). `masked` and `observed` have identical structure; only
+    # the mask differs.
+    function masked_pair(; directed::Bool=true)
+        obs = network(6; directed=directed)
+        for (i, j) in [(1, 2), (2, 3), (3, 1), (1, 3), (2, 6), (3, 4), (5, 6)]
+            add_edge!(obs, i, j)
+        end
+        masked = copy(obs)
+        set_missing_dyad!(masked, 1, 2)   # present face: the arc is there
+        set_missing_dyad!(masked, 4, 5)   # absent face: no arc
+        return masked, obs
+    end
+
+    # (name, thunk) for every exported measure that takes a network. The
+    # thunk forwards `missing` so the same call can be made under both
+    # policies.
+    measure_calls = [
+        ("degree_centrality", (g; kw...) -> degree_centrality(g; kw...)),
+        ("betweenness_centrality", (g; kw...) -> betweenness_centrality(g; kw...)),
+        ("closeness_centrality", (g; kw...) -> closeness_centrality(g; kw...)),
+        ("eigenvector_centrality", (g; kw...) -> eigenvector_centrality(g; kw...)),
+        ("bonacich_power", (g; kw...) -> bonacich_power(g; exponent=0.1, kw...)),
+        ("katz_centrality", (g; kw...) -> katz_centrality(g; kw...)),
+        ("pagerank", (g; kw...) -> pagerank(g; kw...)),
+        ("flowbet", (g; kw...) -> flowbet(g; kw...)),
+        ("centralization(:degree)", (g; kw...) -> centralization(g, :degree; kw...)),
+        ("centralization(:betweenness)", (g; kw...) -> centralization(g, :betweenness; kw...)),
+        ("centralization(:closeness)", (g; kw...) -> centralization(g, :closeness; kw...)),
+        ("centralization(:eigenvector)", (g; kw...) -> centralization(g, :eigenvector; kw...)),
+        ("density", (g; kw...) -> density(g; kw...)),
+        ("gden", (g; kw...) -> gden(g; kw...)),
+        ("reciprocity", (g; kw...) -> reciprocity(g; kw...)),
+        ("grecip", (g; kw...) -> grecip(g; kw...)),
+        ("transitivity", (g; kw...) -> transitivity(g; kw...)),
+        ("transitivity(:local)", (g; kw...) -> transitivity(g; type=:local, kw...)),
+        ("gtrans", (g; kw...) -> gtrans(g; kw...)),
+        ("dyad_census", (g; kw...) -> dyad_census(g; kw...)),
+        ("triad_census", (g; kw...) -> triad_census(g; kw...)),
+        ("mutuality", (g; kw...) -> mutuality(g; kw...)),
+        ("hierarchy", (g; kw...) -> hierarchy(g; kw...)),
+        ("hierarchy(:krackhardt)", (g; kw...) -> hierarchy(g; measure=:krackhardt, kw...)),
+        ("efficiency", (g; kw...) -> efficiency(g; kw...)),
+        ("connectedness", (g; kw...) -> connectedness(g; kw...)),
+        ("component_dist", (g; kw...) -> component_dist(g; kw...)),
+        ("reachability", (g; kw...) -> reachability(g; kw...)),
+        ("components", (g; kw...) -> components(g; kw...)),
+        ("largest_component", (g; kw...) -> largest_component(g; kw...)),
+        ("cliques", (g; kw...) -> cliques(g; min_size=2, kw...)),
+        ("kcores", (g; kw...) -> kcores(g; k=1, kw...)),
+        ("cutpoints", (g; kw...) -> cutpoints(g; kw...)),
+        ("bridges", (g; kw...) -> bridges(g; kw...)),
+        ("bicomponents", (g; kw...) -> bicomponents(g; kw...)),
+        ("geodesic_distance", (g; kw...) -> geodesic_distance(g; kw...)),
+        ("diameter", (g; kw...) -> diameter(g; kw...)),
+        ("average_path_length", (g; kw...) -> average_path_length(g; kw...)),
+        ("structural_equivalence", (g; kw...) -> structural_equivalence(g; kw...)),
+        ("regular_equivalence", (g; kw...) -> regular_equivalence(g; kw...)),
+        ("equiv_clust", (g; kw...) -> equiv_clust(g; k=2, kw...)),
+        ("blockmodel", (g; kw...) -> blockmodel(g; k=2, kw...)),
+        ("qaptest", (g; kw...) -> (qt = qaptest((a, b) -> cor(vec(a), vec(b)),
+                                               g, g; reps=10,
+                                               rng=MersenneTwister(1), kw...);
+                                   (qt.testval, qt.dist))),
+        ("netlm", (g; kw...) -> netlm(g, g; reps=10, rng=MersenneTwister(1), kw...).coefficients),
+        ("netlogit", (g; kw...) -> netlogit(g, g; reps=10, rng=MersenneTwister(1), kw...).coefficients),
+    ]
+
+    @testset "Missing dyads: every measure rejects a masked network" begin
+        for directed in (true, false)
+            masked, _ = masked_pair(; directed=directed)
+            @test n_missing_dyads(masked) == 2
+            for (name, f) in measure_calls
+                # Default policy is :error: the measure must refuse
+                err = try
+                    f(masked)
+                    nothing
+                catch e
+                    e
+                end
+                @test err isa ArgumentError
+                # ...and the message must name the routine and the mask
+                @test occursin("masked", sprint(showerror, err))
+            end
+        end
+    end
+
+    @testset "Missing dyads: :face reproduces the unmasked answer" begin
+        for directed in (true, false)
+            masked, obs = masked_pair(; directed=directed)
+            for (name, f) in measure_calls
+                # The face-value opt-in must return exactly what the same
+                # network without a mask returns (the old, documented answer)
+                @test isequal(f(masked; missing=:face), f(obs))
+            end
+        end
+    end
+
+    @testset "Missing dyads: present-face and absent-face masks" begin
+        masked, obs = masked_pair()
+
+        # The mask does not touch the backing graph: the present-face dyad
+        # (1,2) still reads as an edge, the absent-face dyad (4,5) as a non-edge
+        @test is_missing_dyad(masked, 1, 2) && has_edge(masked, 1, 2)
+        @test is_missing_dyad(masked, 4, 5) && !has_edge(masked, 4, 5)
+        @test ne(masked) == ne(obs)
+
+        # Under :face, the present-face masked arc is counted as a tie and the
+        # absent-face masked dyad is not — that is precisely the danger the
+        # :error default guards against
+        @test degree_centrality(masked; mode=:out, missing=:face)[1] ==
+              degree_centrality(obs; mode=:out)[1]
+        @test density(masked; missing=:face) == density(obs) == 7 / 30
+        @test dyad_census(masked; missing=:face) == dyad_census(obs)
+
+        # Masking every dyad of the network still leaves the face values intact
+        # but blocks every measure
+        allmasked = copy(obs)
+        for i in 1:6, j in 1:6
+            i == j || set_missing_dyad!(allmasked, i, j)
+        end
+        @test_throws ArgumentError density(allmasked)
+        @test density(allmasked; missing=:face) == density(obs)
+
+        # clear_missing_dyads! declares everything observed again: the default
+        # policy works once more
+        cleared = clear_missing_dyads!(copy(masked))
+        @test n_missing_dyads(cleared) == 0
+        @test density(cleared) == density(obs)
+        @test triad_census(cleared) == triad_census(obs)
+    end
+
+    @testset "Missing dyads: policy validation and QAP arguments" begin
+        masked, obs = masked_pair()
+
+        # Only :error and :face are policies
+        @test Set(MISSING_POLICIES) == Set([:error, :face])
+        @test_throws ArgumentError density(obs; missing=:ignore)
+        @test_throws ArgumentError netlm(obs, obs; missing=:ignore, reps=10)
+
+        # No SNA measure claims a principled missing-data treatment
+        for f in (degree_centrality, density, triad_census, centralization,
+                  netlm, netlogit, qaptest)
+            @test supports_missing(f) == false
+        end
+
+        # A mask on *either* QAP argument is caught: y, a predictor, or the
+        # second graph of qaptest
+        @test_throws ArgumentError netlm(masked, obs; reps=10)
+        @test_throws ArgumentError netlm(obs, masked; reps=10)
+        @test_throws ArgumentError netlogit(obs, [obs, masked]; reps=10)
+        @test_throws ArgumentError qaptest((a, b) -> cor(vec(a), vec(b)),
+                                           obs, masked; reps=10)
+
+        # Raw matrices carry no mask, so they are always usable
+        A = Float64.(as_matrix(obs))
+        fit = netlm(A, A; reps=10, rng=MersenneTwister(2))
+        @test length(fit.coefficients) == 2
+
+        # The error message names the routine that refused
+        msg = sprint(showerror, try
+            betweenness_centrality(masked)
+        catch e
+            e
+        end)
+        @test occursin("betweenness_centrality", msg)
+        @test occursin("missing=:face", msg)
+    end
+
+    @testset "Result metadata protocol (QAP regressions)" begin
+        flo = florentine()
+        biz = load_dataset(:florentine_business)
+
+        # netlm: OLS point estimates, QAP permutation p-values, and NO standard
+        # errors at all. The protocol has to keep the estimator and the
+        # inference apart — that separation IS the method.
+        fq = netlm(flo, biz; reps=200, rng=Xoshiro(31))
+        md = fit_metadata(fq)
+        @test md.estimand == :network_regression
+        @test md.objective == :least_squares
+        @test md.is_exact                      # OLS solves its objective exactly
+        @test md.se_method == :none            # netlm reports no SEs
+        # The fit retains the missing-dyad policy it ran under, so the protocol
+        # never has to answer ":unspecified" here: an unmasked fit is :none, and
+        # a `missing=:face` fit records that it read face values.
+        @test md.missing_method == :none
+        @test md.tie_method == :not_applicable
+        @test any(occursin("QAP permutation p-values", a) for a in md.approximations)
+        @test any(occursin("treated as independent observations", a)
+                  for a in md.approximations)
+        @test any(occursin("no standard errors are reported", a)
+                  for a in md.approximations)
+
+        # nullhyp = :classical does no permutation, and says so instead
+        fc = netlm(flo, biz; nullhyp=:classical)
+        @test !any(occursin("QAP permutation p-values", a)
+                   for a in approximations(fc))
+        @test any(occursin("nullhyp = :classical", a) for a in approximations(fc))
+
+        # A `missing=:face` fit RECORDS that it read unobserved ties at face
+        # value — the opt-in is auditable after the fact, not just at the call
+        # site. (This is why the result carries the policy at all.)
+        masked = copy(flo)
+        set_missing_dyad!(masked, 1, 2)
+        @test_throws ArgumentError netlm(masked, biz; nullhyp=:classical)
+        ff = netlm(masked, biz; nullhyp=:classical, missing=:face)
+        @test missing_method(ff) == :condition_on_face
+        @test fit_metadata(ff).missing_method == :condition_on_face
+        # ...and a masked PREDICTOR is caught too, not just a masked response
+        maskedx = copy(biz)
+        set_missing_dyad!(maskedx, 3, 4)
+        @test_throws ArgumentError netlm(flo, maskedx; nullhyp=:classical)
+        @test missing_method(netlm(flo, maskedx; nullhyp=:classical,
+                                   missing=:face)) == :condition_on_face
+
+        # netlogit: an exactly maximized binomial likelihood, with inverse-Fisher
+        # standard errors that assume independent dyads — while the p-values come
+        # from the permutation null, not from those standard errors
+        gl = netlogit(flo, biz; reps=200, rng=Xoshiro(32))
+        mdl = fit_metadata(gl)
+        @test mdl.estimand == :network_logit_regression
+        @test mdl.objective == :likelihood
+        @test mdl.is_exact
+        @test mdl.se_method == :fisher
+        @test any(occursin("anticonservative", a) for a in mdl.approximations)
+        @test any(occursin("not derived from them", a) for a in mdl.approximations)
     end
 end

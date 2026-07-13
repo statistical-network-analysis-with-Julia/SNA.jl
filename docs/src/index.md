@@ -8,7 +8,7 @@ A Julia package providing descriptive analysis tools for social networks, includ
 
 SNA.jl is a comprehensive toolkit for descriptive social network analysis. It provides functions for measuring the structural properties of networks at the vertex, dyad, triad, and whole-network levels. The package covers five core areas: centrality (who is important?), cohesion (how connected is the network?), network measures (what are the global properties?), structural equivalence (which actors occupy similar positions?), and QAP inference (are two relations associated?).
 
-SNA.jl is a port of the R [sna](https://cran.r-project.org/package=sna) package from the [StatNet](https://statnet.org/) collection, adapted for Julia's multiple dispatch and type system. It builds on [Network.jl](https://github.com/statistical-network-analysis-with-Julia/Network.jl), which provides the core network data structure implementing the Graphs.jl interface.
+SNA.jl is a port of the R [sna](https://cran.r-project.org/package=sna) package from the [StatNet](https://statnet.org/) collection, adapted for Julia's multiple dispatch and type system. It builds on [Networks.jl](https://github.com/statistical-network-analysis-with-Julia/Networks.jl), which provides the core network data structure implementing the Graphs.jl interface.
 
 ### What is Social Network Analysis?
 
@@ -62,7 +62,7 @@ SNA.jl supports a wide range of analytical tasks:
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/Network.jl")
+Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/Networks.jl")
 Pkg.add(url="https://github.com/statistical-network-analysis-with-Julia/SNA.jl")
 ```
 
@@ -73,12 +73,12 @@ using Pkg
 Pkg.develop(path="/path/to/SNA.jl")
 ```
 
-SNA.jl depends on [Network.jl](https://github.com/statistical-network-analysis-with-Julia/Network.jl), which will be installed automatically.
+SNA.jl depends on [Networks.jl](https://github.com/statistical-network-analysis-with-Julia/Networks.jl), which will be installed automatically.
 
 ## Quick Start
 
 ```julia
-using Network, SNA
+using Networks, SNA
 
 # Create a small directed network
 net = network(5; directed=true)
@@ -188,3 +188,9 @@ Two vertices $i$ and $j$ are structurally equivalent if they have identical ties
 7. Page, L., Brin, S., Motwani, R., & Winograd, T. (1999). The PageRank citation ranking: Bringing order to the web. *Stanford InfoLab Technical Report*.
 
 8. Butts, C.T. (2008). Social network analysis with sna. *Journal of Statistical Software*, 24(6), 1-51.
+
+## Module
+
+```@docs
+SNA
+```

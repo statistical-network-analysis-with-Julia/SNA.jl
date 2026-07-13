@@ -43,7 +43,7 @@ Example:
 Throughout this guide, we use a network with clear positional structure:
 
 ```julia
-using Network, SNA
+using Networks, SNA
 
 # Manager-subordinate network
 net = network(8; directed=true)
@@ -341,7 +341,7 @@ Consensus clustering is useful when:
 ## Complete Example
 
 ```julia
-using Network, SNA
+using Networks, SNA
 
 # Create a network with role structure
 net = network(10; directed=true)
