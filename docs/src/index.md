@@ -189,6 +189,22 @@ Two vertices $i$ and $j$ are structurally equivalent if they have identical ties
 
 8. Butts, C.T. (2008). Social network analysis with sna. *Journal of Statistical Software*, 24(6), 1-51.
 
+
+## Citation
+
+If you use SNA.jl in your work, please cite it using the entry in
+[`CITATION.bib`](https://github.com/statistical-network-analysis-with-Julia/SNA.jl/blob/main/CITATION.bib):
+
+```biblatex
+@misc{SNWJSNAJL,
+  author = {{Statistical Network Analysis with Julia}},
+  title = {SNA.jl: Social Network Analysis in Julia},
+  year = {2026},
+  url = {https://github.com/statistical-network-analysis-with-Julia/SNA.jl},
+  note = {Homepage: https://statistical-network-analysis-with-Julia.github.io/SNA.jl; GitHub: https://github.com/statistical-network-analysis-with-Julia}
+}
+```
+
 ## Module
 
 ```@docs

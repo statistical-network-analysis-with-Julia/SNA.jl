@@ -362,6 +362,21 @@ For more detailed documentation, see:
 
 3. Butts, C.T. (2020). sna: Tools for Social Network Analysis. R package. [https://cran.r-project.org/package=sna](https://cran.r-project.org/package=sna)
 
+## Citation
+
+If you use SNA.jl in your work, please cite it using the entry in
+[`CITATION.bib`](CITATION.bib):
+
+```biblatex
+@misc{SNWJSNAJL,
+  author = {{Statistical Network Analysis with Julia}},
+  title = {SNA.jl: Social Network Analysis in Julia},
+  year = {2026},
+  url = {https://github.com/statistical-network-analysis-with-Julia/SNA.jl},
+  note = {Homepage: https://statistical-network-analysis-with-Julia.github.io/SNA.jl; GitHub: https://github.com/statistical-network-analysis-with-Julia}
+}
+```
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
