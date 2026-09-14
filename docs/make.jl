@@ -1,0 +1,55 @@
+using Documenter
+using SNA
+
+DocMeta.setdocmeta!(SNA, :DocTestSetup, :(using SNA); recursive=true)
+
+makedocs(
+    sitename = "SNA.jl",
+    modules = [SNA],
+    authors = "Simone Santoni",
+    format = Documenter.HTML(
+        prettyurls = get(ENV, "DOCS_PRETTY_URLS", get(ENV, "CI", "false")) == "true",
+        canonical = "https://statistical-network-analysis-with-Julia.github.io/SNA.jl/dev/",
+        assets = ["assets/snwj-docs.css", "assets/snwj-docs.js"],
+        footer = "[Ecosystem home](/) · [Packages](/packages/) · [Get started](/getting-started/) · [Capabilities](/capabilities/) — Built with [Documenter.jl](https://github.com/JuliaDocs/Documenter.jl).",
+        edit_link = "main",
+    ),
+    repo = Documenter.Remotes.GitHub("Statistical-network-analysis-with-Julia", "SNA.jl"),
+    pages = [
+        "Home" => "index.md",
+        "Getting Started" => "getting_started.md",
+        "User Guide" => [
+            "Centrality" => "guide/centrality.md",
+            "Network Measures" => "guide/measures.md",
+            "Cohesion" => "guide/cohesion.md",
+            "Structural Equivalence" => "guide/equivalence.md",
+        ],
+        "API Reference" => [
+            "Centrality" => "api/centrality.md",
+            "Measures" => "api/measures.md",
+            "Cohesion" => "api/cohesion.md",
+            "Equivalence" => "api/equivalence.md",
+            "Utilities" => "api/utilities.md",
+        ],
+    ],
+    # STRICT. Undefined bindings, bad cross-references, duplicate docs and
+    # malformed markdown are build ERRORS, so they cannot silently accumulate
+    # again (a docs build that passes while warning is one that will rot).
+    #
+    # `checkdocs = :exports` is the one deliberate exclusion: every *exported*
+    # name must be documented, but internal machinery (materialized/private
+    # types, `Base`/`Graphs` method extensions, inner constructors) need not be
+    # -- filler docstrings for names a user never types are worse than none.
+    warnonly = false,
+    checkdocs = :exports,
+)
+
+deploydocs(
+    repo = "github.com/statistical-network-analysis-with-Julia/SNA.jl.git",
+    devbranch = "main",
+    versions = [
+        "stable" => "dev", # Development alias; change to "v^" when adopting release-based stable docs.
+        "dev" => "dev",
+    ],
+    push_preview = false, # Pull requests build docs; main/tags publish through Pages.
+)
