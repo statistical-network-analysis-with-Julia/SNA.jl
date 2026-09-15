@@ -127,6 +127,8 @@ numbers were wrong or R-divergent).
 
 ### Changed
 
+- Documentation uses the default Documenter themes, with a new package-specific
+  SVG icon and browser favicon in the official Julia logo colors.
 - `density`/`gden` forward the caller's `missing=` policy to
   `Networks.network_density(net; missing=policy)`. Networks.jl's
   `network_density` now guards itself with `require_observed` (panel 2026-09,
