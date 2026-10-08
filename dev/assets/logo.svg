@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">SNA.jl</title>
+  <desc id="desc">A magnifying glass examining a network: centrality, cohesion and structural analysis.</desc>
+  <path d="M160 160 218 218" fill="none" stroke="#4063D8" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="108" cy="108" r="76" fill="none" stroke="#4063D8" stroke-width="14"/>
+  <path d="M72 124 110 70 145 129 72 124" fill="none" stroke="#9558B2" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="72" cy="124" r="17" fill="#CB3C33"/>
+  <circle cx="110" cy="70" r="17" fill="#389826"/>
+  <circle cx="145" cy="129" r="17" fill="#9558B2"/>
+</svg>
