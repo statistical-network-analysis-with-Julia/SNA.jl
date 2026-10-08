@@ -1,6 +1,7 @@
 # SNA.jl
 
 [![Network Analysis](https://img.shields.io/badge/Network-Analysis-orange.svg)](https://github.com/statistical-network-analysis-with-Julia/SNA.jl)
+[![Build Status](https://github.com/statistical-network-analysis-with-Julia/SNA.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/statistical-network-analysis-with-Julia/SNA.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://statistical-network-analysis-with-Julia.github.io/SNA.jl/dev/)
 [![Julia](https://img.shields.io/badge/Julia-1.12+-purple.svg)](https://julialang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
